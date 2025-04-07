@@ -1,19 +1,17 @@
-from UserInterface.UserInterface import UserInterface 
-
+# Test.py
 import tkinter as tk
-import traceback
-import time
-import sys
+from UserInterface.UserInterface import UserInterface
+from MazeGenerator import MazeGenerator
+from MazeSolver import MazeSolver
+
+def solver_factory(algorithm_name):
+    return MazeSolver(algorithm=algorithm_name)
 
 def main():
     root = tk.Tk()
-    app = UserInterface(root)  # ✅ Now this correctly refers to the class
+    generator = MazeGenerator()
+    app = UserInterface(root, generator, solver_factory)
     root.mainloop()
 
 if __name__ == "__main__":
-    try:
-        main()
-    except Exception:
-        print("An error occurred. Restarting the application...")
-        traceback.print_exc()
-        time.sleep(1)
+    main()
