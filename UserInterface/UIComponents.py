@@ -1,114 +1,144 @@
-import os
-import tkinter as tk
-from PIL import Image, ImageTk
-from typing import Callable
-
-class TkinterStyle:
-    def __init__(self, background_image: str, button_size: tuple, font: tuple, fg_color: str, bg_color: str):
-        self.background_image = background_image
-        self.button_size = button_size
-        self.font = font
-        self.fg_color = fg_color
-        self.bg_color = bg_color
+from pygame.locals import QUIT, MOUSEBUTTONDOWN, MOUSEMOTION, MOUSEBUTTONUP
+import pygame
 
 
-class TkinterButton:
-    def __init__(self, parent: tk.Widget, text: str, command: Callable[[], None], style: TkinterStyle):
-        self.parent = parent
+class UIColors:
+    PANEL_BG = (217, 217, 217)
+    WINDOW_BG = (224, 224, 224)
+    CANVAS_BG = (240, 240, 240)
+    BUTTON_TEXT = (255, 255, 255)
+    BLACK = (0, 0, 0)
+    WHITE = (255, 255, 255)
+
+class UIComponent:
+    def __init__(self, x, y, width, height):
+        self._x = x
+        self._y = y
+        self._width = width
+        self._height = height
+        self.active = True
+
+    def get_position(self):
+        return (self._x, self._y)
+
+    def set_position(self, x, y):
+        self._x = x
+        self._y = y
+
+    def get_size(self):
+        return (self._width, self._height)
+
+    def set_size(self, width, height):
+        self._width = width
+        self._height = height
+
+    def get_rect(self):
+        return pygame.Rect(self._x, self._y, self._width, self._height)
+
+class Button(UIComponent):
+    def __init__(self, x, y, width, height, text, callback):
+        super().__init__(x, y, width, height)
         self.text = text
-        self.command = command
-        self.style = style
-        self.bg_image = None
+        self.callback = callback
+        self.hovered = False
 
-        try:
-            self.original_image = Image.open(self.style.background_image)
-            self.button = self.create_button(self.style.button_size)
-        except Exception as e:
-            print(f"Could not load background image: {e}")
-            self.button = tk.Button(
-                self.parent,
-                text=self.text,
-                command=self.command,
-                font=self.style.font,
-                fg=self.style.fg_color,
-                bg=self.style.bg_color,
-                borderwidth=0,
-                highlightthickness=0,
-                relief='flat'
-            )
+    def draw(self, surface):
+        rect = self.get_rect()
+        color = (100, 100, 100) if self.hovered else (150, 150, 150)
+        pygame.draw.rect(surface, color, rect)
+        font = pygame.font.Font(None, 24)
+        text_surf = font.render(self.text, True, UIColors.WHITE)
+        text_rect = text_surf.get_rect(center=rect.center)
+        surface.blit(text_surf, text_rect)
 
-    def create_button(self, desired_size):
-        try:
-            resample = Image.Resampling.LANCZOS
-        except AttributeError:
-            resample = Image.LANCZOS
+    def handle_event(self, event):
+        if not self.active:
+            return False
+        rect = self.get_rect()
+        if event.type == MOUSEMOTION:
+            self.hovered = rect.collidepoint(event.pos)
+        elif event.type == MOUSEBUTTONDOWN and self.hovered:
+            self.callback()
+            return True
+        return False
 
-        resized_image = self.original_image.resize(desired_size, resample)
-        self.bg_image = ImageTk.PhotoImage(resized_image)
+class Dropdown(UIComponent):
+    def __init__(self, x, y, width, height, options, default=0):
+        super().__init__(x, y, width, height)
+        self.options = options
+        self.selected = default
+        self.expanded = False
 
-        button = tk.Button(
-            self.parent,
-            text=self.text,
-            command=self.command,
-            image=self.bg_image,
-            compound='center',
-            font=self.style.font,
-            fg=self.style.fg_color,
-            bg=self.style.bg_color,
-            borderwidth=0,
-            highlightthickness=0,
-            relief='flat'
-        )
-        button.image = self.bg_image
-        return button
+    def draw(self, surface):
+        rect = self.get_rect()
+        pygame.draw.rect(surface, UIColors.WHITE, rect)
+        pygame.draw.rect(surface, UIColors.WHITE, rect, 1)
+        font = pygame.font.Font(None, 24)
+        text_surf = font.render(self.options[self.selected], True, UIColors.BLACK)
+        text_rect = text_surf.get_rect(center=rect.center)
+        surface.blit(text_surf, text_rect)
 
-    def resize(self, new_size):
-        try:
-            resample = Image.Resampling.LANCZOS
-        except AttributeError:
-            resample = Image.LANCZOS
+        if self.expanded:
+            for i, option in enumerate(self.options):
+                item_rect = pygame.Rect(
+                    rect.x, 
+                    rect.y + (i + 1) * rect.height,
+                    rect.width, 
+                    rect.height
+                )
+                pygame.draw.rect(surface, UIColors.WHITE, item_rect)
+                pygame.draw.rect(surface, UIColors.BLACK, item_rect, 1)
+                text_surf = font.render(option, True, UIColors.BLACK)
+                text_rect = text_surf.get_rect(center=item_rect.center)
+                surface.blit(text_surf, text_rect)
 
-        resized_image = self.original_image.resize(new_size, resample)
-        self.bg_image = ImageTk.PhotoImage(resized_image)
-        self.button.config(image=self.bg_image)
-        self.button.image = self.bg_image
+    def handle_event(self, event):
+        if not self.active:
+            return False, None
+        rect = self.get_rect()
+        if event.type == MOUSEBUTTONDOWN:
+            if rect.collidepoint(event.pos):
+                self.expanded = not self.expanded
+                return True, None
+            elif self.expanded:
+                for i in range(len(self.options)):
+                    item_rect = pygame.Rect(
+                        rect.x, 
+                        rect.y + (i + 1) * rect.height,
+                        rect.width, 
+                        rect.height
+                    )
+                    if item_rect.collidepoint(event.pos):
+                        self.selected = i
+                        self.expanded = False
+                        return True, self.options[i]
+        return False, None
 
+class Slider(UIComponent):
+    def __init__(self, x, y, width, height, min_val, max_val, default):
+        super().__init__(x, y, width, height)
+        self.min = min_val
+        self.max = max_val
+        self.value = default
+        self.dragging = False
 
-class TkinterGridLayout:
-    def __init__(self, parent:tk.Widget, gap:int=0, auto_resize:bool=False):
-        self.parent = parent
-        self.gap = gap
-        self.auto_resize = auto_resize
-        self.buttons = []
-        if self.auto_resize:
-            self.parent.bind("<Configure>", self.on_resize)
+    def draw(self, surface):
+        rect = self.get_rect()
+        pygame.draw.rect(surface, UIColors.WHITE, rect)
+        pygame.draw.rect(surface, UIColors.BLACK, rect, 1)
+        pos = rect.left + (self.value - self.min) / (self.max - self.min) * rect.width
+        thumb_rect = pygame.Rect(pos - 5, rect.top - 5, 10, rect.height + 10)
+        pygame.draw.rect(surface, (100, 100, 100), thumb_rect)
 
-    def add_button(self, tk_button, row, column):
-        tk_button.button.place(x=0, y=0)
-        self.buttons.append((tk_button, row, column))
-        if self.auto_resize:
-            self.on_resize(None)
-
-    def on_resize(self, event):
-        if not self.auto_resize or not self.buttons:
-            return
-
-        parent_width = self.parent.winfo_width()
-        parent_height = self.parent.winfo_height()
-
-        max_row = max(row for (_, row, _) in self.buttons)
-        max_col = max(col for (_, _, col) in self.buttons)
-        total_rows = max_row + 1
-        total_cols = max_col + 1
-
-        total_gap_x = self.gap * (total_cols - 1)
-        total_gap_y = self.gap * (total_rows - 1)
-        cell_width = max(1, (parent_width - total_gap_x) // total_cols)
-        cell_height = max(1, (parent_height - total_gap_y) // total_rows)
-
-        for btn, row, col in self.buttons:
-            x = col * (cell_width + self.gap)
-            y = row * (cell_height + self.gap)
-            btn.resize((cell_width, cell_height))
-            btn.button.place(x=x, y=y, width=cell_width, height=cell_height)
-
+    def handle_event(self, event):
+        rect = self.get_rect()
+        if event.type == MOUSEBUTTONDOWN:
+            if rect.collidepoint(event.pos):
+                self.dragging = True
+        elif event.type == MOUSEBUTTONUP:
+            self.dragging = False
+        elif event.type == MOUSEMOTION and self.dragging:
+            x = max(rect.left, min(event.pos[0], rect.right))
+            self.value = self.min + (x - rect.left) / rect.width * (self.max - self.min)
+            return True
+        return False

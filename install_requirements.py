@@ -24,7 +24,7 @@ VS_CODE_INSTRUCTIONS_TEMPLATE = \
 If you are still having issues, you may need to install the following dependencies:
 """
 
-DEPENDENCIES = ['Pillow']  
+DEPENDENCIES = ['Pillow', 'Numpy', 'Pygame']  
 
 
 

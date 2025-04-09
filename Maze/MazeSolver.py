@@ -1,5 +1,7 @@
-# MazeSolver.py
-from Algorithms.Algorithms import bfs_steps, dfs_steps, dijkstra_steps, a_star_steps
+from Algorithms.AStar import a_star_steps
+from Algorithms.BreadthFirstSearch import bfs_steps
+from Algorithms.DepthFirstSearch import dfs_steps
+from Algorithms.Dijkstra import dijkstra_steps
 
 class MazeSolver:
     def __init__(self, algorithm="BFS"):
@@ -12,10 +14,6 @@ class MazeSolver:
         }
 
     def solve(self, maze, start, end):
-        """
-        Solve the maze using the selected algorithm.
-        Returns a tuple (final_path, steps) where steps is a list of maze snapshots.
-        """
         if self.algorithm not in self.algorithms:
             raise ValueError(f"Unknown algorithm: {self.algorithm}")
-        return self.algorithms[self.algorithm](maze, start, end)
+        return self.algorithms[self.algorithm](maze, start, end, snapshot_interval=1)

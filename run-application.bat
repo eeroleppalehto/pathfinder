@@ -1,6 +1,6 @@
 @echo off
 cls
 echo Running Python script...
-python test.py
+python run-application.py
 echo.
 pause
