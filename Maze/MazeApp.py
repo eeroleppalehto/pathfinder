@@ -2,9 +2,9 @@ import pygame
 import sys
 import copy
 from pygame.locals import QUIT
-from .MazeGenerator import generate_maze
+from .MazeGenerator import MazeGenerator
+from .MazeModel import MazeModel
 from .MazeSolver import MazeSolver
-from .MazeState import MazeState
 from .MazeRenderer import MazeRenderer
 from UserInterface.UserInterface import ControlPanel
 
@@ -23,8 +23,10 @@ class MazeApp:
         self.canvas_height = 650
         self.control_panel_width = 250
 
-        self.maze_state = MazeState(generate_maze)
-        self.maze_renderer = MazeRenderer(self.maze_state, self.canvas_width, self.canvas_height)
+        # Create a MazeGenerator instance.
+        maze_generator = MazeGenerator()
+        self.maze_model = MazeModel(maze_generator)
+        self.maze_renderer = MazeRenderer(self.maze_model, self.canvas_width, self.canvas_height)
         self.control_panel = ControlPanel(self, self.canvas_width, self.control_panel_width, screen_height)
 
         self.is_playing = False
@@ -32,7 +34,6 @@ class MazeApp:
 
     def solver_factory(self, algorithm_name):
         return MazeSolver(algorithm=algorithm_name)
-
 
     def run(self):
         self.stop()
@@ -52,18 +53,19 @@ class MazeApp:
                     sys.exit()
                 self.control_panel.handle_event(event)
 
-            if self.is_playing and self.maze_state.steps:
+            if self.is_playing and self.maze_model.steps:
                 self.accumulated_time += delta_time
                 time_per_step = base_time_per_step / self.control_panel.slider.value
                 steps_to_process = min(
                     int(self.accumulated_time / time_per_step),
-                    len(self.maze_state.steps) - self.maze_state.current_step - 1,
+                    len(self.maze_model.steps) - self.maze_model.current_step - 1,
                     100
                 )
                 if steps_to_process > 0:
                     self.accumulated_time -= steps_to_process * time_per_step
-                    self.maze_state.current_step += steps_to_process
-                    self.maze_state.display_step(self.maze_state.current_step)
+                    self.maze_model.current_step += steps_to_process
+                    self.maze_model.display_step(self.maze_model.current_step)
+                    self.maze_renderer.update_overlay()
             else:
                 pygame.time.wait(2)
 
@@ -74,9 +76,11 @@ class MazeApp:
             self.clock.tick(30)
 
     def play(self):
-        if not self.maze_state.steps:
+        if not self.maze_model.steps:
             algorithm_name = self.control_panel.dropdown.options[self.control_panel.dropdown.selected]
-            self.maze_state.run_algorithm(self.solver_factory, algorithm_name)
+            self.maze_model.run_algorithm(self.solver_factory, algorithm_name)
+            # After running the algorithm, update the overlay.
+            self.maze_renderer.update_overlay()
         if not self.is_playing:
             self.is_playing = True
             self.accumulated_time = 0
@@ -86,17 +90,24 @@ class MazeApp:
 
     def stop(self):
         self.is_playing = False
-        self.maze_state.current_step = -1
-        self.maze_state.steps = []
-        self.maze_state.current_maze = copy.deepcopy(self.maze_state.original_maze)
-        self.maze_state.overlay_surface.fill((0, 0, 0, 0))
+        self.maze_model.current_step = -1
+        self.maze_model.steps = []
+        self.maze_model.current_maze = copy.deepcopy(self.maze_model.original_maze)
+        # Reset overlay by reinitializing the background.
+        self.maze_renderer.initialize_background()
 
     def next_step(self):
         self.pause()
-        if self.maze_state.current_step < len(self.maze_state.steps) - 1:
-            self.maze_state.display_step(self.maze_state.current_step + 1)
+        if self.maze_model.current_step < len(self.maze_model.steps) - 1:
+            self.maze_model.display_step(self.maze_model.current_step + 1)
+            self.maze_renderer.update_overlay()
 
     def prev_step(self):
         self.pause()
-        if self.maze_state.current_step > 0:
-            self.maze_state.display_step(self.maze_state.current_step - 1)
+        if self.maze_model.current_step > 0:
+            self.maze_model.display_step(self.maze_model.current_step - 1)
+            self.maze_renderer.update_overlay()
+
+if __name__ == "__main__":
+    app = MazeApp()
+    app.run()
