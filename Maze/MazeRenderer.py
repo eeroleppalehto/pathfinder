@@ -16,9 +16,14 @@ class MazeRenderer:
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.color_scheme = color_scheme
+        # Calculate maximum integer cell size that fits in the given canvas.
         self.cell_size = min(canvas_width // self.maze_model.cols, canvas_height // self.maze_model.rows)
         self.surface_width = self.maze_model.cols * self.cell_size
         self.surface_height = self.maze_model.rows * self.cell_size
+        
+        # Calculate offsets to center the maze.
+        self.offset_x = (self.canvas_width - self.surface_width) // 2
+        self.offset_y = (self.canvas_height - self.surface_height) // 2
 
         self.background_surface = pygame.Surface((self.surface_width, self.surface_height))
         self.overlay_surface = pygame.Surface((self.surface_width, self.surface_height), pygame.SRCALPHA)
@@ -26,7 +31,6 @@ class MazeRenderer:
         self.initialize_background()
 
     def initialize_background(self):
-        # Draw the static background from the original maze.
         self.background_surface.fill(self.color_scheme.get(0, (255, 255, 255)))
         for i in range(self.maze_model.rows):
             for j in range(self.maze_model.cols):
@@ -40,13 +44,11 @@ class MazeRenderer:
         self.overlay_surface.fill((0, 0, 0, 0))
 
     def update_overlay(self):
-        # Rebuild the overlay by comparing the current maze with the original maze.
         self.overlay_surface.fill((0, 0, 0, 0))
         for i in range(self.maze_model.rows):
             for j in range(self.maze_model.cols):
                 original = self.maze_model.original_maze[i][j]
                 current = self.maze_model.current_maze[i][j]
-                # Only draw if there's a dynamic change.
                 if current != original:
                     rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
                                        self.cell_size, self.cell_size)
@@ -54,5 +56,6 @@ class MazeRenderer:
                     pygame.draw.rect(self.overlay_surface, color, rect)
 
     def draw(self, surface):
-        surface.blit(self.background_surface, (0, 0))
-        surface.blit(self.overlay_surface, (0, 0))
+        # Blit the maze surfaces using the computed offset.
+        surface.blit(self.background_surface, (self.offset_x, self.offset_y))
+        surface.blit(self.overlay_surface, (self.offset_x, self.offset_y))
