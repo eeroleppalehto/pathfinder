@@ -25,7 +25,7 @@ class MazeApp:
 
         # Create a MazeGenerator instance.
         maze_generator = MazeGenerator()
-        self.maze_model = MazeModel(maze_generator)
+        self.maze_model = MazeModel(maze_generator, 200, 200)
         self.maze_renderer = MazeRenderer(self.maze_model, self.canvas_width, self.canvas_height)
         self.control_panel = ControlPanel(self, self.canvas_width, self.control_panel_width, screen_height)
 

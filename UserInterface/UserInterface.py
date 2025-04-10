@@ -40,7 +40,7 @@ class ControlPanel:
     def handle_event(self, event):
         dropdown_changed, algorithm = self.dropdown.handle_event(event)
         if dropdown_changed and algorithm:
-            self.app.maze_state.steps = []
+            self.app.maze_model.steps = []
         self.play_button.handle_event(event)
         self.pause_button.handle_event(event)
         self.stop_button.handle_event(event)
