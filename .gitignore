@@ -172,3 +172,6 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+Maze/MazeApp.py
+Maze/MazeGenerator.py
+Maze/MazeState.py
