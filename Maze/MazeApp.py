@@ -15,22 +15,24 @@ class MazeApp:
         pygame.init()
         self.screen = pygame.display.set_mode(
             (screen_width, screen_height),
-            pygame.HWSURFACE | pygame.DOUBLEBUF
+            pygame.HWSURFACE | pygame.DOUBLEBUF 
         )
+
         pygame.display.set_caption("Maze Solver Visualization")
+
         self.clock = pygame.time.Clock()
         self.canvas_width = 650
         self.canvas_height = 650
         self.control_panel_width = 250
 
-        # Create a MazeGenerator instance.
         maze_generator = MazeGenerator()
-        self.maze_model = MazeModel(maze_generator, 200, 200)
+        self.maze_model = MazeModel(maze_generator, 100, 100)
         self.maze_renderer = MazeRenderer(self.maze_model, self.canvas_width, self.canvas_height)
         self.control_panel = ControlPanel(self, self.canvas_width, self.control_panel_width, screen_height)
 
         self.is_playing = False
         self.accumulated_time = 0
+
 
     def solver_factory(self, algorithm_name):
         return MazeSolver(algorithm=algorithm_name)
@@ -61,11 +63,13 @@ class MazeApp:
                     len(self.maze_model.steps) - self.maze_model.current_step - 1,
                     100
                 )
+
                 if steps_to_process > 0:
                     self.accumulated_time -= steps_to_process * time_per_step
                     self.maze_model.current_step += steps_to_process
                     self.maze_model.display_step(self.maze_model.current_step)
                     self.maze_renderer.update_overlay()
+
             else:
                 pygame.time.wait(2)
 
@@ -79,8 +83,8 @@ class MazeApp:
         if not self.maze_model.steps:
             algorithm_name = self.control_panel.dropdown.options[self.control_panel.dropdown.selected]
             self.maze_model.run_algorithm(self.solver_factory, algorithm_name)
-            # After running the algorithm, update the overlay.
             self.maze_renderer.update_overlay()
+
         if not self.is_playing:
             self.is_playing = True
             self.accumulated_time = 0
@@ -93,7 +97,6 @@ class MazeApp:
         self.maze_model.current_step = -1
         self.maze_model.steps = []
         self.maze_model.current_maze = copy.deepcopy(self.maze_model.original_maze)
-        # Reset overlay by reinitializing the background.
         self.maze_renderer.initialize_background()
 
     def next_step(self):

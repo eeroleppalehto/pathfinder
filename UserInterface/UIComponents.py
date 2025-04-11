@@ -140,5 +140,8 @@ class Slider(UIComponent):
         elif event.type == MOUSEMOTION and self.dragging:
             x = max(rect.left, min(event.pos[0], rect.right))
             self.value = self.min + (x - rect.left) / rect.width * (self.max - self.min)
+            # Optional: Round to nearest integer for discrete steps
+            if hasattr(self, 'step'):
+                self.value = round(self.value / self.step) * self.step
             return True
         return False

@@ -22,6 +22,8 @@ class ControlPanel:
         self.stop_button = Button(panel_x + 20, 200, button_width, button_height, "Stop", self.app.stop)
         self.next_button = Button(panel_x + 20 + 110, 200, button_width, button_height, "Next", self.app.next_step)
         self.prev_button = Button(panel_x + 20, 240, button_width, button_height, "Prev", self.app.prev_step)
+        self.timeline_slider = Slider(panel_x + 20, 280, 200, 15, 0, 0, 0)
+
 
     def draw(self, surface):
         panel_rect = pygame.Rect(self.app.canvas_width, 0, self.panel_width, self.screen_height)
@@ -37,6 +39,20 @@ class ControlPanel:
         self.prev_button.draw(surface)
         self.dropdown.draw(surface)
 
+        if self.app.maze_model.steps:
+            max_step = len(self.app.maze_model.steps) - 1
+            self.timeline_slider.min = 0
+            self.timeline_slider.max = max_step
+
+            if not self.timeline_slider.dragging:
+                self.timeline_slider.value = self.app.maze_model.current_step
+                
+            font = pygame.font.Font(None, 24)
+            timeline_label = font.render("Timeline", True, UIColors.BLACK)
+            surface.blit(timeline_label, (self.panel_x + 20, 260))
+            self.timeline_slider.draw(surface)
+
+
     def handle_event(self, event):
         dropdown_changed, algorithm = self.dropdown.handle_event(event)
         if dropdown_changed and algorithm:
@@ -47,3 +63,12 @@ class ControlPanel:
         self.next_button.handle_event(event)
         self.prev_button.handle_event(event)
         self.slider.handle_event(event)
+
+        if self.app.maze_model.steps:
+            timeline_changed = self.timeline_slider.handle_event(event)
+            if timeline_changed:
+                new_step = int(round(self.timeline_slider.value))
+                new_step = max(0, min(new_step, len(self.app.maze_model.steps) - 1))
+                self.app.maze_model.display_step(new_step)
+                self.app.maze_renderer.update_overlay()
+                self.app.pause()
