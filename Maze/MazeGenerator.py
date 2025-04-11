@@ -1,7 +1,7 @@
 import random
 
 class MazeGenerator:
-    def generate(self, num_cols, num_rows, seed=None):
+    def generate2(self, num_cols, num_rows, seed=None):
         # Seed the random number generator for reproducibility.
         if seed is not None:
             random.seed(seed)
@@ -48,3 +48,20 @@ class MazeGenerator:
         maze[num_rows - 1][num_cols - 1] = 'E'
         
         return maze
+    
+
+    def generate(self, rows, cols, seed=0, obstacle_chance=0.1):
+        grid = [[0 for _ in range(cols)] for _ in range(rows)]
+
+        for r in range(rows):
+            for c in range(cols):
+                if random.random() < obstacle_chance:
+                    grid[r][c] = 1  # obstacle
+
+        # Make sure start/goal are walkable
+        grid[1][1] = 0
+        grid[rows - 2][cols - 2] = 0
+
+        grid[0][0] = 'S'
+        grid[rows - 1][cols - 1] = 'E'
+        return grid
