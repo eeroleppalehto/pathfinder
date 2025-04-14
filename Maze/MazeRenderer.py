@@ -1,4 +1,5 @@
 import pygame
+from .MazeModel import MazeModel
 
 # Define a color scheme (used for both static and dynamic cells).
 MAZE_COLORS = {
@@ -11,11 +12,11 @@ MAZE_COLORS = {
 }
 
 class MazeRenderer:
-    def __init__(self, maze_model, canvas_width=650, canvas_height=650, color_scheme=MAZE_COLORS):
+    def __init__(self, maze_model: MazeModel, canvas_width: int = 650, canvas_height: int = 650, color_scheme: dict = MAZE_COLORS):
         self.maze_model = maze_model
-        self.canvas_width = canvas_width
-        self.canvas_height = canvas_height
-        self.color_scheme = color_scheme
+        self.canvas_width: int = canvas_width
+        self.canvas_height: int = canvas_height
+        self.color_scheme: dict = color_scheme
 
         # Calculate the cell size so that the maze fills the canvas height.
         self.cell_size = canvas_height // self.maze_model.rows
@@ -64,7 +65,7 @@ class MazeRenderer:
                     color = self.color_scheme.get(current, (0, 0, 0, 0))
                     pygame.draw.rect(self.overlay_surface, color, rect)
 
-    def draw(self, surface):
+    def draw(self, surface: pygame.Surface):
         # Blit both the background and overlay surfaces using the computed offsets.
         surface.blit(self.background_surface, (self.offset_x, self.offset_y))
         surface.blit(self.overlay_surface, (self.offset_x, self.offset_y))
