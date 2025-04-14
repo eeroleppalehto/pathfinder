@@ -1,7 +1,27 @@
 import random
 
 class MazeGenerator:
+    def __init__(self):
+        self.rows = 0
+        self.cols = 0
+        self.state = "random"
+        self.seed = 0
+
     def generate(self, num_cols, num_rows, seed=None):
+        # Seed the random number generator for reproducibility.
+        if seed is not None:
+            random.seed(seed)
+
+        num_cols = num_cols if num_cols % 2 == 1 else num_cols + 1
+        num_rows = num_rows if num_rows % 2 == 1 else num_rows + 1
+
+        if self.state != "random":
+            return self.generate_empty_maze(num_rows, num_cols)
+        else:
+            self.seed += 1
+            return self.generate_random(num_cols, num_rows, self.seed)
+    
+    def generate_random(self, num_cols, num_rows, seed=None):
         # Seed the random number generator for reproducibility.
         if seed is not None:
             random.seed(seed)
@@ -47,4 +67,25 @@ class MazeGenerator:
         maze[0][0] = 'S'
         maze[num_rows - 1][num_cols - 1] = 'E'
         
+        return maze
+
+    def generate_empty_maze(self, width, height):
+        maze: list[list[int]] = []
+
+        for i in range(width):
+            maze.append([])
+            for _ in range(height):
+                maze[i].append(0)
+
+        for i in range(height):
+            maze[0][i] = 1
+            maze[width-1][i] = 1
+
+        for i in range(width):
+            maze[i][0] = 1
+            maze[i][height-1] = 1
+        
+        maze[1][1] = "S"
+        maze[width-2][height-2] = "E"
+
         return maze
