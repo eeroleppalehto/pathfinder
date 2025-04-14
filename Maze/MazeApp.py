@@ -111,6 +111,15 @@ class MazeApp:
             self.maze_model.display_step(self.maze_model.current_step - 1)
             self.maze_renderer.update_overlay()
 
+    def generate_random_maze(self):
+        self.maze_model.maze_generator.state = "random"
+        self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
+        self.maze_renderer.initialize_background()
+
+    def generate_empty_maze(self):
+        self.maze_model.maze_generator.state = "empty"
+        self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
+        self.maze_renderer.initialize_background()
 if __name__ == "__main__":
     app = MazeApp()
     app.run()
