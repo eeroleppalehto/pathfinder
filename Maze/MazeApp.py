@@ -120,6 +120,27 @@ class MazeApp:
         self.maze_model.maze_generator.state = "empty"
         self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
         self.maze_renderer.initialize_background()
+
+    def set_draw_walls(self):
+        self.drawing_state = "draw_walls"
+        self.maze_drawing.current_draw_state = self.drawing_state
+        self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions[self.drawing_state]
+    
+    def set_remove_walls(self):
+        self.drawing_state = "remove_walls"
+        self.maze_drawing.current_draw_state = self.drawing_state
+        self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions[self.drawing_state]
+    
+    def set_place_start(self):
+        self.drawing_state = "place_start"
+        self.maze_drawing.current_draw_state = self.drawing_state
+        self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions[self.drawing_state]
+    
+    def set_place_end(self):
+        self.drawing_state = "place_end"
+        self.maze_drawing.current_draw_state = self.drawing_state
+        self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions[self.drawing_state]
+
 if __name__ == "__main__":
     app = MazeApp()
     app.run()
