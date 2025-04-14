@@ -6,9 +6,13 @@ from .MazeGenerator import MazeGenerator
 from .MazeModel import MazeModel
 from .MazeSolver import MazeSolver
 from .MazeRenderer import MazeRenderer
+from .MazeDrawing import MazeDrawing
 from UserInterface.UserInterface import ControlPanel
-
+from UserInterface.Cursor import Cursor
+ 
 COLOR_WINDOW_BG = (224, 224, 224)
+
+SIZE_OF_MAZE = 100
 
 class MazeApp:
     def __init__(self, screen_width=950, screen_height=650):
@@ -26,11 +30,14 @@ class MazeApp:
         self.control_panel_width = 250
 
         maze_generator = MazeGenerator()
-        self.maze_model = MazeModel(maze_generator, 100, 100)
+        self.maze_model = MazeModel(maze_generator, SIZE_OF_MAZE, SIZE_OF_MAZE)
         self.maze_renderer = MazeRenderer(self.maze_model, self.canvas_width, self.canvas_height)
+        self.cursor = Cursor()
+        self.maze_drawing = MazeDrawing(self.maze_renderer, self.cursor)
         self.control_panel = ControlPanel(self, self.canvas_width, self.control_panel_width, screen_height)
 
         self.is_playing = False
+        self.drawing_state = "disabled"
         self.accumulated_time = 0
 
 
@@ -53,6 +60,7 @@ class MazeApp:
                 if event.type == QUIT:
                     pygame.quit()
                     sys.exit()
+                self.maze_drawing.handle_event(event)
                 self.control_panel.handle_event(event)
 
             if self.is_playing and self.maze_model.steps:
@@ -80,6 +88,8 @@ class MazeApp:
             self.clock.tick(30)
 
     def play(self):
+        self.control_panel.draw_option_buttons.deactivate_all()
+        self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions["disabled"]
         if not self.maze_model.steps:
             algorithm_name = self.control_panel.dropdown.options[self.control_panel.dropdown.selected]
             self.maze_model.run_algorithm(self.solver_factory, algorithm_name)
