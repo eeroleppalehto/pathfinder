@@ -1,7 +1,7 @@
 # UserInterface.py
 import os
 import pygame
-from .UIComponents import Button, Dropdown, Slider, UIColors
+from .UIComponents import Button, Dropdown, Slider, UIColors, DrawOptionButtonGroup
 
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(WORKING_DIR, "Assets")
@@ -9,8 +9,8 @@ ASSETS_DIR = os.path.join(WORKING_DIR, "Assets")
 class ControlPanel:
     def __init__(self, app, panel_x, panel_width, screen_height):
         self.app = app
-        self.panel_x = panel_x
-        self.panel_width = panel_width
+        self.panel_x = panel_x # The width of the maze panel
+        self.panel_width = panel_width # width of 
         self.screen_height = screen_height
 
         self.dropdown = Dropdown(panel_x + 20, 20, 200, 30, ["BFS", "DFS", "Dijkstra", "A*"])
@@ -22,6 +22,11 @@ class ControlPanel:
         self.stop_button = Button(panel_x + 20, 200, button_width, button_height, "Stop", self.app.stop)
         self.next_button = Button(panel_x + 20 + 110, 200, button_width, button_height, "Next", self.app.next_step)
         self.prev_button = Button(panel_x + 20, 240, button_width, button_height, "Prev", self.app.prev_step)
+    
+        self.generate_button = Button(panel_x + 20 + 110, 520, button_width, button_height, "Random", self.app.generate_random_maze)
+        self.draw_button = Button(panel_x + 20, 520, button_width, button_height, "Empty", self.app.generate_empty_maze)
+        self.draw_option_buttons = DrawOptionButtonGroup(app, panel_x, 560)
+
         self.timeline_slider = Slider(panel_x + 20, 280, 200, 15, 0, 0, 0)
 
 
@@ -37,6 +42,9 @@ class ControlPanel:
         self.stop_button.draw(surface)
         self.next_button.draw(surface)
         self.prev_button.draw(surface)
+        self.generate_button.draw(surface)
+        self.draw_button.draw(surface)
+        self.draw_option_buttons.draw(surface)
         self.dropdown.draw(surface)
 
         if self.app.maze_model.steps:
@@ -62,7 +70,10 @@ class ControlPanel:
         self.stop_button.handle_event(event)
         self.next_button.handle_event(event)
         self.prev_button.handle_event(event)
+        self.generate_button.handle_event(event)
+        self.draw_button.handle_event(event)
         self.slider.handle_event(event)
+        self.draw_option_buttons.handle_event(event)
 
         if self.app.maze_model.steps:
             timeline_changed = self.timeline_slider.handle_event(event)

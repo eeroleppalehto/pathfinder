@@ -8,6 +8,17 @@ class MazeModel:
         self.rows = len(self.original_maze)
         self.cols = len(self.original_maze[0])
         self.current_maze = copy.deepcopy(self.original_maze)
+        self.start, self.end = self.get_start_end()
+        self.steps = []
+        self.current_step = -1
+        self.last_step = -1
+
+    def generate_new_maze(self, maze_width, maze_height, seed=0):
+        self.original_maze = self.maze_generator.generate(maze_width, maze_height, seed)
+        self.rows = len(self.original_maze)
+        self.cols = len(self.original_maze[0])
+        self.current_maze = copy.deepcopy(self.original_maze)
+        self.start, self.end = self.get_start_end()
         self.steps = []
         self.current_step = -1
         self.last_step = -1
