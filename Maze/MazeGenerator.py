@@ -89,3 +89,19 @@ class MazeGenerator:
         maze[width-2][height-2] = "E"
 
         return maze
+
+    def generate2(self, rows, cols, seed=0, obstacle_chance=0.1):
+        grid = [[0 for _ in range(cols)] for _ in range(rows)]
+
+        for r in range(rows):
+            for c in range(cols):
+                if random.random() < obstacle_chance:
+                    grid[r][c] = 1  # obstacle
+
+        # Make sure start/goal are walkable
+        grid[1][1] = 0
+        grid[rows - 2][cols - 2] = 0
+
+        grid[0][0] = 'S'
+        grid[rows - 1][cols - 1] = 'E'
+        return grid
