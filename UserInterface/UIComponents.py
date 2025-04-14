@@ -9,6 +9,8 @@ class UIColors:
     BUTTON_TEXT = (255, 255, 255)
     BLACK = (0, 0, 0)
     WHITE = (255, 255, 255)
+    GREEN = (0, 255, 0)
+    RED = (255, 0, 0)
 
 class UIComponent:
     def __init__(self, x, y, width, height):
@@ -61,6 +63,65 @@ class Button(UIComponent):
             self.callback()
             return True
         return False
+
+class IconButton(Button):
+    def __init__(self, x, y, width, height, text, callback, icon_color):
+        super().__init__(x, y, width, height, text, callback)
+        self.icon_color = icon_color
+        self.base_color = (150, 150, 150)
+        self.selected = False
+    
+    def draw(self, surface):
+        rect = self.get_rect()
+        bg_color = (100, 100, 100) if self.hovered else self.base_color
+        pygame.draw.rect(surface, bg_color, rect)
+        icon = pygame.Rect(self._x + (self._width//2 - self._height//4), self._y + (self._height//2 - self._height//4), self._height//2, self._height//2)
+        pygame.draw.rect(surface, self.icon_color, icon)
+    
+    def activate(self):
+        self.selected = True
+        self.base_color = (100, 100, 100)
+
+    def deactivate(self):
+        self.selected = False
+        self.base_color = (150, 150, 150)
+    
+
+class DrawOptionButtonGroup:
+    def __init__(self, app, x, y, button_width = 100, button_height = 30):
+        self.app = app
+        self.draw_wall_button = IconButton(x + 20, y, button_width//2, button_height, "Wall", self.app.set_draw_walls, UIColors.BLACK)
+        self.remove_wall_button = IconButton(x + 20 + 55, y, button_width//2, button_height, "Remove", self.app.set_remove_walls, UIColors.WHITE)
+        self.set_start_button = IconButton(x + 20 + 110, y, button_width//2, button_height, "Start", self.app.set_place_start, UIColors.GREEN)
+        self.set_end_button = IconButton(x + 20 + 165, y, button_width//2, button_height, "End", self.app.set_place_end, UIColors.RED)
+    
+    def handle_event(self, event):
+        if self.draw_wall_button.handle_event(event):
+            self.deactivate_all()
+            self.draw_wall_button.activate()
+        elif self.remove_wall_button.handle_event(event):
+            self.deactivate_all()
+            self.remove_wall_button.activate()
+        elif self.set_start_button.handle_event(event):
+            self.deactivate_all()
+            self.set_start_button.activate()
+        elif self.set_end_button.handle_event(event):
+            self.deactivate_all()
+            self.set_end_button.activate()
+    
+    def draw(self, surface):
+        self.draw_wall_button.draw(surface)
+        self.remove_wall_button.draw(surface)
+        self.set_start_button.draw(surface)
+        self.set_end_button.draw(surface)
+
+    def deactivate_all(self):
+        self.draw_wall_button.deactivate()
+        self.remove_wall_button.deactivate()
+        self.set_start_button.deactivate()
+        self.set_end_button.deactivate()
+    
+    def hide():...
 
 class Dropdown(UIComponent):
     def __init__(self, x, y, width, height, options, default=0):
