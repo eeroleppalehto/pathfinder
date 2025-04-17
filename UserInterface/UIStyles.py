@@ -197,10 +197,10 @@ class ComponentStyleManager:
         self._fonts = [None, None]
 
     def set_normal_style(self, style: StyleSheet):
-        self.base_style_group.normal = style
+        self.base_style_group = StyleGroup(style, self.base_style_group.hover)
     
     def set_hover_style(self, style:StyleSheet):
-        self.base_style_group.hover = style
+        self.base_style_group = StyleGroup(self.base_style_group.normal, style)
 
     def set_override(self, prop: StyleProperty, value, style_type: int | None = StyleType.NORMAL):
         if prop is StyleProperty.NONE:
