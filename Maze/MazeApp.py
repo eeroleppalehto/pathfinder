@@ -30,6 +30,8 @@ class MazeApp:
         self.control_panel_width = 250
         self.speed = 1
         self.max_speed = 20
+        self.step_counter = 0
+        self.final_step_count = ""
 
         self.cursor = Cursor()
         self.maze_generator = MazeGenerator()
@@ -75,10 +77,13 @@ class MazeApp:
                 )
 
                 if steps_to_process > 0:
+                    self.step_counter += steps_to_process
                     self.accumulated_time -= steps_to_process * time_per_step
                     self.maze_model.current_step += steps_to_process
                     self.maze_model.display_step(self.maze_model.current_step)
                     self.maze_renderer.update_overlay()
+                elif steps_to_process == 0:
+                    self.final_step_count = len(self.maze_model.steps[len(self.maze_model.steps)-1])
 
             else:
                 pygame.time.wait(2)
@@ -116,6 +121,7 @@ class MazeApp:
     def stop(self):
         self.is_playing = False
         self.maze_model.current_step = -1
+        self.step_counter = 0
         self.maze_model.steps = []
         self.UserInterface.reset_timeline()
         self.maze_model.current_maze = copy.deepcopy(self.maze_model.original_maze)
@@ -123,12 +129,14 @@ class MazeApp:
 
     def next_step(self):
         self.pause()
+        self.step_counter += 1
         if self.maze_model.current_step < len(self.maze_model.steps) - 1:
             self.maze_model.display_step(self.maze_model.current_step + 1)
             self.maze_renderer.update_overlay()
 
     def prev_step(self):
         self.pause()
+        self.step_counter -= 1
         if self.maze_model.current_step > 0:
             self.maze_model.display_step(self.maze_model.current_step - 1)
             self.maze_renderer.update_overlay()
@@ -146,6 +154,7 @@ class MazeApp:
 
         new_step = int(round(value))
         new_step = max(0, min(new_step, len(self.maze_model.steps) - 1))
+        self.step_counter = new_step
         self.maze_model.display_step(new_step)
         self.maze_renderer.update_overlay()
         self.pause()
