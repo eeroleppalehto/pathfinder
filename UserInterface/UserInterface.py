@@ -44,6 +44,14 @@ class UserInterface:
         self.speed_header = Header((20, 55), f"Speed: {self.speed_slider.value:.1f}x")
         self.timeline_header = Header((20, 275), "Timeline")
 
+        self.step_counter_header = Header((20, 340), f"Steps: {self.app.step_counter}")
+        self.step_counter_header.text_color = (0,0,255)
+        self.step_counter_header.hover_text_color = (0,0,255)
+        
+        self.final_step_count_header = Header((20, 370), f"Length of the found path:\n{self.app.final_step_count}")
+        self.final_step_count_header.text_color = (255, 0, 255)
+        self.final_step_count_header.hover_text_color = (255, 0, 255)
+
         self.drawing_tools_header = Header((20, 560), "Drawing tools")
         self.drawing_tools_panel = Panel((20, 590), (210, 40))
         self.draw_start_button = Button((5, 5), (30, 30), "", self.app.set_place_start)
@@ -63,10 +71,13 @@ class UserInterface:
         self.control_panel.add_children(self.headers)
         self.control_panel.add_children(self.buttons)
         self.control_panel.add_children(self.panels)
+        self.control_panel.add_children([self.step_counter_header, self.final_step_count_header])
         
     
     def draw(self, surface):
         self.speed_header.set_text_content(f"Speed: {self.speed_slider.value:.1f}x")
+        self.step_counter_header.set_text_content(f"Steps: {self.app.step_counter}")
+        self.final_step_count_header.set_text_content(f"Length of the found path:\n{self.app.final_step_count}")
         self.control_panel.draw(surface)
 
     def set_timeline(self, min, max, value):
