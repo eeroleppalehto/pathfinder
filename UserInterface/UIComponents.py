@@ -166,12 +166,22 @@ class Header(UIComponent):
         super().__init__(position, (0, 0), DefaultStyles.Header)
         self.text = text
         self._font = self.style.get_font()
+        self.needs_update = True
+        self._cache_key = None
+        self._cached_surf = None
         self.update_size()
 
     def set_text_content(self, text: str):
         """Update text and recalculate size."""
-        self.text = text
-        self.update_size()
+        if self.text != text:
+            self.text = text
+            self.update_size()
+            self.needs_update = True
+
+    def set_position(self, x: int, y: int):
+        """Override to flag cache invalidation on move."""
+        super().set_position(x, y)
+        self.needs_update = True
 
     def update_size(self):
         """Calculate size for multiline text without padding."""
@@ -183,37 +193,83 @@ class Header(UIComponent):
             max_width = max(max_width, w)
         total_height = line_height * len(lines)
         self.set_size(max_width, total_height)
+        self.needs_update = True
+
+class Header(UIComponent):
+    def __init__(self, position: tuple[int, int], text: str):
+        super().__init__(position, (0, 0), DefaultStyles.Header)
+        self.text = text
+        self._font = self.style.get_font()
+        self._cache_key = None
+        self._cached_surf = None
+        self.needs_update = True
+        self.update_size()
+
+    def set_text_content(self, text: str):
+        if self.text != text:
+            self.text = text
+            self.update_size()
+            self.needs_update = True
+
+    def set_position(self, x: int, y: int):
+        super().set_position(x, y)
+        self.needs_update = True
+
+    def update_size(self):
+        lines = self.text.split('\n') if self.text else ['']
+        line_height = self._font.get_linesize()
+        max_width = max(self._font.size(line)[0] for line in lines)
+        total_height = line_height * len(lines)
+        self.set_size(max_width, total_height)
+        self.needs_update = True
 
     def draw(self, surface):
         rect = self.get_rect()
         bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
         text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
         alignment = self.get_style_property(StyleProperty.TEXT_ALIGN, self.hovered) or 'left'
-
-        # Draw background
+        
         if bg_color is not None:
             pygame.draw.rect(surface, bg_color, rect)
 
-        lines = self.text.split('\n') if self.text else ['']
-        line_height = self._font.get_linesize()
-        total_h = line_height * len(lines)
-        start_y = rect.top + (rect.height - total_h) // 2
-
-        for i, line in enumerate(lines):
-            text_surf = self._font.render(line, True, text_color)
-            # get bounding rect of actual glyphs
-            bounding = text_surf.get_bounding_rect()
-            # Compute horizontal x based on alignment and bounding
+        if not self.text or '\n' not in self.text:
+            # Single-line rendering
+            text_surf = self._font.render(self.text, True, text_color)
+            text_rect = text_surf.get_rect()
             if alignment == 'left':
-                x = rect.left - bounding.x
+                text_rect.topleft = rect.topleft
             elif alignment == 'right':
-                x = rect.right - (bounding.x + bounding.width)
+                text_rect.topright = rect.topright
             else:  # center
-                x = rect.left + (rect.width - bounding.width) // 2 - bounding.x
-            # Determine vertical y
-            y = start_y + i * line_height
-            # Blit using pixel-perfect alignment
-            surface.blit(text_surf, (x, y))
+                text_rect.midtop = rect.midtop
+            surface.blit(text_surf, text_rect)
+        else:
+            cache_key = (self.text, text_color, alignment)
+            if self.needs_update or self._cache_key != cache_key or self._cached_surf is None:
+                lines = self.text.split('\n')
+                width, height = self.get_size()
+                line_height = self._font.get_linesize()
+                surf = pygame.Surface((width, height), pygame.SRCALPHA)
+
+                for i, line in enumerate(lines):
+                    text_surf = self._font.render(line, True, text_color)
+                    bounding = text_surf.get_bounding_rect()
+
+                    if alignment == 'left':
+                        x = -bounding.x
+                    elif alignment == 'right':
+                        x = (width - bounding.width) - bounding.x
+                    else:  # center
+                        x = (width - bounding.width) // 2 - bounding.x
+
+                    y = i * line_height
+                    surf.blit(text_surf, (x, y))
+
+                self._cached_surf = surf
+                self._cache_key = cache_key
+                self.needs_update = False
+
+            surface.blit(self._cached_surf, rect.topleft)
 
         self.draw_children(surface)
 
