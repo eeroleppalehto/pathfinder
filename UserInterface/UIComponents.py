@@ -190,6 +190,7 @@ class Header(UIComponent):
         text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
         alignment = self.get_style_property(StyleProperty.TEXT_ALIGN, self.hovered) or 'left'
 
+        # Draw background
         if bg_color is not None:
             pygame.draw.rect(surface, bg_color, rect)
 
@@ -200,15 +201,19 @@ class Header(UIComponent):
 
         for i, line in enumerate(lines):
             text_surf = self._font.render(line, True, text_color)
-            text_rect = text_surf.get_rect()
+            # get bounding rect of actual glyphs
+            bounding = text_surf.get_bounding_rect()
+            # Compute horizontal x based on alignment and bounding
             if alignment == 'left':
-                text_rect.x = rect.left
+                x = rect.left - bounding.x
             elif alignment == 'right':
-                text_rect.x = rect.right - text_rect.width
-            else: 
-                text_rect.x = rect.left + (rect.width - text_rect.width) // 2
-            text_rect.y = start_y + i * line_height
-            surface.blit(text_surf, text_rect)
+                x = rect.right - (bounding.x + bounding.width)
+            else:  # center
+                x = rect.left + (rect.width - bounding.width) // 2 - bounding.x
+            # Determine vertical y
+            y = start_y + i * line_height
+            # Blit using pixel-perfect alignment
+            surface.blit(text_surf, (x, y))
 
         self.draw_children(surface)
 
