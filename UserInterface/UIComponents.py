@@ -114,10 +114,11 @@ class UIComponent(Styleable):
         return False
     
     def activate(self):
-        active_component = self.root.registry.get_active()
-        if(active_component and active_component != self):
-            active_component.deactivate()
-        self.root.registry.set_active(self)
+        if(self.root != None):
+            active_component = self.root.registry.get_active()
+            if(active_component and active_component != self):
+                active_component.deactivate()
+            self.root.registry.set_active(self)
 
     def deactivate(self):
         return
@@ -376,10 +377,11 @@ class Dropdown(UIComponent):
         self.expanded = False
 
     def activate(self):
-        active_component = self.root.registry.get_active()
-        if active_component and active_component != self:
-            active_component.deactivate()
-        self.root.registry.set_active(self)
+        if self.root:
+            active_component = self.root.registry.get_active()
+            if active_component and active_component != self:
+                active_component.deactivate()
+            self.root.registry.set_active(self)
 
 
 
