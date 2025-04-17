@@ -372,16 +372,8 @@ class Dropdown(UIComponent):
 
         return False, None
 
-        
     def deactivate(self):
         self.expanded = False
-
-    def activate(self):
-        if self.root:
-            active_component = self.root.registry.get_active()
-            if active_component and active_component != self:
-                active_component.deactivate()
-            self.root.registry.set_active(self)
 
 
 
