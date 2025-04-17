@@ -28,6 +28,8 @@ class UserInterface:
         self.draw_empty_button.hover_background_color = (160, 200, 235)  # soft hover tint
         self.draw_wall_button.background_color       = (66, 66, 66)
         self.draw_wall_button.hover_background_color = (97, 97, 97)
+        style = StyleSheet(background_color = (0, 255, 0))
+        self.speed_slider.set_style(style)
 
     def _create_components(self):
         self.control_panel = Panel((self.control_panel_x, 0), (self.control_panel_width, self.screen_height))
