@@ -3,7 +3,7 @@ import os
 import pygame
 from .UIComponents import Button, Dropdown, Slider, Image, Panel, Header
 from .UIStyles import StyleSheet, StyleProperty, StyleType, apply_style_to_components
-
+from .UIManager import UIRoot
 WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
 ASSETS_DIR = os.path.join(WORKING_DIR, "Assets")
 
@@ -28,10 +28,9 @@ class UserInterface:
         self.draw_empty_button.hover_background_color = (160, 200, 235)  # soft hover tint
         self.draw_wall_button.background_color       = (66, 66, 66)
         self.draw_wall_button.hover_background_color = (97, 97, 97)
-        style = StyleSheet(background_color = (0, 255, 0))
-        self.speed_slider.set_style(style)
 
     def _create_components(self):
+        self.root = UIRoot()
         self.control_panel = Panel((self.control_panel_x, 0), (self.control_panel_width, self.screen_height))
         self.dropdown = Dropdown((20, 20), (200, 30), ["BFS", "DFS", "Dijkstra", "A*"], 0, self.app.on_algorithm_changed)
         self.speed_slider = Slider((20, 85), (200, 15), (10, 20), 0.1, self.max_speed, self.default_speed, self.app.on_speed_changed)
@@ -74,13 +73,13 @@ class UserInterface:
         self.control_panel.add_children(self.buttons)
         self.control_panel.add_children(self.panels)
         self.control_panel.add_children([self.step_counter_header, self.final_step_count_header])
-        
+        self.root.add_component(self.control_panel)
     
     def draw(self, surface):
         self.speed_header.set_text_content(f"Speed: {self.speed_slider.value:.1f}x")
         self.step_counter_header.set_text_content(f"Steps: {self.app.step_counter}")
         self.final_step_count_header.set_text_content(f"Length of the found path:\n{self.app.final_step_count}")
-        self.control_panel.draw(surface)
+        self.root.draw(surface)
 
     def set_timeline(self, min, max, value):
         self.timeline_slider.min = min
@@ -92,6 +91,6 @@ class UserInterface:
         self.timeline_slider.value = 0
 
     def handle_event(self, event):
-        self.control_panel.handle_event(event)
+        self.root.handle_event(event)
 
     
