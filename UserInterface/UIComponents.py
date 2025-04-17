@@ -3,7 +3,17 @@ from pygame.locals import QUIT, MOUSEBUTTONDOWN, MOUSEMOTION, MOUSEBUTTONUP
 from .UIStyles import Styleable, ComponentStyleManager, StyleSheet 
 from .UIStyles import StyleGroup, StyleProperty, StyleType 
 from .UIDefaultStyles import DefaultStyles
+from .UIManager import UIRoot
+
 import pygame
+
+"""
+        events are currently handled in a really dumb way, 
+        events should bubble up and stop propropagating after we have found the element that we are intersecting with
+        deepest leaf node on(one of the childrens children) is the top most drawn element, if we bubble up and we 
+        intersect with an elment, it means that we are intersecting with the top most visible element,
+        then we should stop handling the events(stop propropagating)
+"""
 
 pygame.init()
 
@@ -18,19 +28,28 @@ class UIComponent(Styleable):
         self.style = style_group.normal
         self.hover_style = style_group.hover
         self.parent: UIComponent | None = None
+        self.root: UIRoot | None = None
+
+    def set_root(self, root: UIRoot | None):
+        self.root = root
+        for child in self.children:
+            child.set_root(root)
     
     def add_children(self, children: list[UIComponent]):
         for child in children:
             if child.parent is not None:
                 child.parent.remove_child(child)
             child.parent = self
+            child.set_root(self.root)
             self.children.append(child)
+            
 
     def remove_children(self, children: list[UIComponent]) -> None:
         for child in children:
             if child in self.children:
                 self.children.remove(child)
                 child.parent = None
+                child.set_root(None)
 
     def set_parent(self, parent: UIComponent) -> None:
         parent.add_child(self)
@@ -94,6 +113,16 @@ class UIComponent(Styleable):
         self.propagate_event(event)
         return False
     
+    def activate(self):
+        active_component = self.root.registry.get_active()
+        if(active_component and active_component != self):
+            active_component.deactivate()
+        self.root.registry.set_active(self)
+
+    def deactivate(self):
+        return
+    
+    
     
 class Panel(UIComponent):
     def __init__(self, position: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0), callback: callable = None):
@@ -125,6 +154,7 @@ class Panel(UIComponent):
             if self.callback:
                 self.callback()
             self.propagate_event(event)
+            self.activate()
             return True
 
         self.propagate_event(event)
@@ -223,6 +253,7 @@ class Button(UIComponent):
             if self.callback:
                 self.callback()
             self.propagate_event(event)
+            self.activate()
             return True
 
         self.propagate_event(event)
@@ -267,6 +298,7 @@ class DropdownItem(UIComponent):
             if self.callback:
                 self.callback()
             self.propagate_event(event)
+            self.activate()
             return True
         
         self.propagate_event(event)
@@ -320,6 +352,7 @@ class Dropdown(UIComponent):
             return False, None
 
         rect = self.get_rect()
+
         if event.type == MOUSEMOTION:
             self.hovered = rect.collidepoint(event.pos)
             if self.expanded:
@@ -329,11 +362,25 @@ class Dropdown(UIComponent):
             if rect.collidepoint(event.pos):
                 self.expanded = not self.expanded
                 return True, None
+
             elif self.expanded:
+                self.activate()
                 for child in self.children:
                     if child.handle_event(event):
                         return True, self.options[self.children.index(child)]
+
         return False, None
+
+        
+    def deactivate(self):
+        self.expanded = False
+
+    def activate(self):
+        active_component = self.root.registry.get_active()
+        if active_component and active_component != self:
+            active_component.deactivate()
+        self.root.registry.set_active(self)
+
 
 
 class Slider(UIComponent):
