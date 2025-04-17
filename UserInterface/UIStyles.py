@@ -16,7 +16,8 @@ class StyleProperty(enum.IntFlag):
      BORDER_COLOR = 32
      BORDER_SIZE = 64
      SLIDER_THUMB_COLOR = 128
-     END = 256
+     TEXT_ALIGN = 256
+     END = 512
 
      def get_index(self):
          if self == StyleProperty.NONE: 
@@ -36,7 +37,8 @@ class StyleSheet:
         font_size: int = 24,
         border_color: tuple[int, int, int] = (0, 0, 0),
         border_size: int = 0,
-        thumb_color: tuple[int, int, int] = (0, 0, 0)
+        thumb_color: tuple[int, int, int] = (0, 0, 0),
+        text_align: str = "left"
     ):
         self.background_color = background_color
         self.foreground_color = foreground_color
@@ -46,6 +48,7 @@ class StyleSheet:
         self.border_color = border_color
         self.border_size = border_size
         self.slider_thumb_color = thumb_color
+        self.text_align = text_align
         self._font = pygame.font.Font(self._font_family, self._font_size)
 
     @property
@@ -186,6 +189,22 @@ class Styleable:
             color,
             StyleType.HOVER
         )
+        
+    @property
+    def text_align(self) -> str | None:
+        return self.get_style_property(StyleProperty.TEXT_ALIGN, is_hovered=False)
+
+    @text_align.setter
+    def text_align(self, align: str | None):
+        self.set_style_property(StyleProperty.TEXT_ALIGN, align, StyleType.NORMAL)
+
+    @property
+    def hover_text_align(self) -> str | None:
+        return self.get_style_property(StyleProperty.TEXT_ALIGN, is_hovered=True)
+
+    @hover_text_align.setter
+    def hover_text_align(self, align: str | None):
+        self.set_style_property(StyleProperty.TEXT_ALIGN, align, StyleType.HOVER)
 
      
 NUM_STYLE_PROPERTIES = len(StyleProperty) - 1

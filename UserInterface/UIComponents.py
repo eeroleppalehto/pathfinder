@@ -161,7 +161,6 @@ class Panel(UIComponent):
         self.propagate_event(event)
         return False
 
-
 class Header(UIComponent):
     def __init__(self, position: tuple[int, int], text: str):
         super().__init__(position, (0, 0), DefaultStyles.Header)
@@ -169,27 +168,54 @@ class Header(UIComponent):
         self._font = self.style.get_font()
         self.update_size()
 
-    def set_text_content(self, text:str):
+    def set_text_content(self, text: str):
+        """Update text and recalculate size."""
         self.text = text
+        self.update_size()
 
     def update_size(self):
-        width, height = self._font.size(self.text)
-        padding = 10
-        self.set_size(width + padding, height + padding)
-    
+        """Calculate size for multiline text without padding."""
+        lines = self.text.split('\n') if self.text else ['']
+        max_width = 0
+        line_height = self._font.get_linesize()
+        for line in lines:
+            w, _ = self._font.size(line)
+            max_width = max(max_width, w)
+        total_height = line_height * len(lines)
+        self.set_size(max_width, total_height)
+
     def draw(self, surface):
         rect = self.get_rect()
-        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
         text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
-        
-        if background_color != None:
-            pygame.draw.rect(surface, background_color, rect)
-        
-        text_surf = self._font.render(self.text, True, text_color)
-        text_rect = text_surf.get_rect(center=rect.center)
-        surface.blit(text_surf, text_rect)
-        self.draw_children(surface)
+        alignment = self.get_style_property(StyleProperty.TEXT_ALIGN, self.hovered) or 'left'
 
+        # Draw background
+        if bg_color is not None:
+            pygame.draw.rect(surface, bg_color, rect)
+
+        # Prepare multiline rendering
+        lines = self.text.split('\n') if self.text else ['']
+        line_height = self._font.get_linesize()
+        total_h = line_height * len(lines)
+        # Vertical centering
+        start_y = rect.top + (rect.height - total_h) // 2
+
+        for i, line in enumerate(lines):
+            text_surf = self._font.render(line, True, text_color)
+            text_rect = text_surf.get_rect()
+            # Horizontal alignment without padding or margin
+            if alignment == 'left':
+                text_rect.x = rect.left
+            elif alignment == 'right':
+                text_rect.x = rect.right - text_rect.width
+            else:  # center
+                text_rect.x = rect.left + (rect.width - text_rect.width) // 2
+            # Vertical position
+            text_rect.y = start_y + i * line_height
+            surface.blit(text_surf, text_rect)
+
+        self.draw_children(surface)
 
 class Image(UIComponent):
     def __init__(self, src: str, alt: str = "", position: tuple[int, int] = (0, 0),
