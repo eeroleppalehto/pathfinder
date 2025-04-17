@@ -1,75 +1,61 @@
 import copy
 
 def dfs_steps(maze, start, end, snapshot_interval=1):
-    original = [row.copy() for row in maze]
-    steps = []
-    current_changes = []
-    move_count = 0
+    rows, cols = len(maze), len(maze[0])
+    original = [r.copy() for r in maze]
     visited = set()
-    stack = []
-    found = False
-    path = []
-    final_path = []
-
-    # Initialize stack with start position and backtracking flag
-    stack.append((start[0], start[1], False))
+    parent = {}
+    stack = [(start[0], start[1], False)]
+    steps, changes = [], []
+    count, found = 0, False
+    endpoints = ('S', 'E')
 
     while stack:
-        x, y, is_backtracking = stack.pop()
-
+        x, y, back = stack.pop()
         if (x, y) == end:
             found = True
-            path.append((x, y))
-            continue
+            break
 
-        if not is_backtracking:
-            # First visit to this node
-            if (x, y) not in visited:
-                visited.add((x, y))
-                if original[x][y] not in ('S', 'E'):
-                    current_changes.append((x, y, 'V'))
-                    original[x][y] = 'V'
-                    move_count += 1
-                # Push the backtracking phase
-                stack.append((x, y, True))
-                # Explore neighbors in reverse order to maintain original direction order (up, down, left, right)
-                for dx, dy in reversed([(-1, 0), (1, 0), (0, -1), (0, 1)]):
-                    nx, ny = x + dx, y + dy
-                    if 0 <= nx < len(original) and 0 <= ny < len(original[0]):
-                        if original[nx][ny] != 1 and (nx, ny) not in visited:
-                            stack.append((nx, ny, False))
+        if back:
+            if original[x][y] not in endpoints:
+                original[x][y] = 0
+                count += 1
         else:
-            # Backtracking phase
-            if found:
-                path.append((x, y))
-            else:
-                if original[x][y] not in ('S', 'E'):
-                    current_changes.append((x, y, 0))
-                    original[x][y] = 0
-                    move_count += 1
+            if (x, y) in visited:
+                continue
+            visited.add((x, y))
+            if original[x][y] not in endpoints:
+                changes.append((x, y, 'V'))
+                original[x][y] = 'V'
+                count += 1
+            stack.append((x, y, True))
+            # to generate neighbouring cells
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]: 
+                nx, ny = x + dx, y + dy
+                # check if node has not been visited
+                if 0 <= nx < rows and 0 <= ny < cols and original[nx][ny] != 1 and (nx, ny) not in visited:
+                    # keep track where we came from
+                    parent[(nx, ny)] = (x, y)
+                    stack.append((nx, ny, False))
+        # periodically take a snapshot of steps
+        if count % snapshot_interval == 0 and changes:
+            steps.append(changes.copy())
+            changes.clear()
+            
+    # append any changes left since last snapshot
+    if changes:
+        steps.append(changes.copy())
 
-        # Capture snapshot if needed
-        if move_count % snapshot_interval == 0 and current_changes:
-            steps.append(current_changes.copy())
-            current_changes.clear()
-
-    # Handle remaining changes
-    if current_changes:
-        steps.append(current_changes.copy())
-        current_changes.clear()
-
-    # If path is found, mark the final path
+    path = []
     if found:
-        # The path is collected in reverse order (from end to start)
-        final_path = list(reversed(path))
-        # Add the path changes to steps
-        path_changes = []
-        for (x, y) in final_path:
-            if original[x][y] not in ('S', 'E'):
-                path_changes.append((x, y, 'P'))
-        if path_changes:
-            steps.append(path_changes)
-    else:
-        final_path = []
+        node = end
+        while node != start:
+            path.append(node)
+            node = parent[node]
+        path.append(start)
+        path.reverse()
+        pchg = [(x, y, 'P') for x, y in path if original[x][y] not in endpoints]
+        if pchg:
+            steps.append(pchg)
 
-    return final_path, steps
+    return (path if found else []), steps
