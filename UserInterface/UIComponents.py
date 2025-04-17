@@ -1,208 +1,414 @@
+from __future__ import annotations
 from pygame.locals import QUIT, MOUSEBUTTONDOWN, MOUSEMOTION, MOUSEBUTTONUP
+from .UIStyles import Styleable, ComponentStyleManager, StyleSheet 
+from .UIStyles import StyleGroup, StyleProperty, StyleType 
+from .UIDefaultStyles import DefaultStyles
 import pygame
 
+pygame.init()
 
-class UIColors:
-    PANEL_BG = (217, 217, 217)
-    WINDOW_BG = (224, 224, 224)
-    CANVAS_BG = (240, 240, 240)
-    BUTTON_TEXT = (255, 255, 255)
-    BLACK = (0, 0, 0)
-    WHITE = (255, 255, 255)
-    GREEN = (0, 255, 0)
-    RED = (255, 0, 0)
-
-class UIComponent:
-    def __init__(self, x, y, width, height):
-        self._x = x
-        self._y = y
-        self._width = width
-        self._height = height
+class UIComponent(Styleable):
+    def __init__(self, position: tuple[int, int], size: tuple[int, int], style_group: StyleGroup):
+        self._local_position = position  
+        self._size = size
         self.active = True
+        self.hovered = False
+        self.children: list[UIComponent] = []
+        self.style_manager = ComponentStyleManager(style_group)
+        self.style = style_group.normal
+        self.hover_style = style_group.hover
+        self.parent: UIComponent | None = None
+    
+    def add_children(self, children: list[UIComponent]):
+        for child in children:
+            if child.parent is not None:
+                child.parent.remove_child(child)
+            child.parent = self
+            self.children.append(child)
+
+    def remove_children(self, children: list[UIComponent]) -> None:
+        for child in children:
+            if child in self.children:
+                self.children.remove(child)
+                child.parent = None
+
+    def set_parent(self, parent: UIComponent) -> None:
+        parent.add_child(self)
+
+    def get_absolute_position(self) -> tuple[int, int]:
+        if self.parent:
+            parent_x, parent_y = self.parent.get_absolute_position()
+            local_x, local_y = self._local_position
+            return (parent_x + local_x, parent_y + local_y)
+        else:
+            return self._local_position
 
     def get_position(self):
-        return (self._x, self._y)
+        return self.get_absolute_position()
 
     def set_position(self, x, y):
-        self._x = x
-        self._y = y
+        self._local_position = (x, y)
 
     def get_size(self):
-        return (self._width, self._height)
+        return self._size
 
     def set_size(self, width, height):
-        self._width = width
-        self._height = height
+        self._size = (width, height)
 
     def get_rect(self):
-        return pygame.Rect(self._x, self._y, self._width, self._height)
+        abs_pos = self.get_absolute_position()
+        return pygame.Rect(abs_pos[0], abs_pos[1], self._size[0], self._size[1])
 
-class Button(UIComponent):
-    def __init__(self, x, y, width, height, text, callback):
-        super().__init__(x, y, width, height)
-        self.text = text
+    def set_style(self, style: StyleSheet):
+        self.style_manager.set_normal_style(style)
+        for child in self.children:
+            child.style_manager.set_normal_style(style)
+
+    def set_hover_style(self, style: StyleSheet):
+        self.style_manager.set_hover_style(style)
+        for child in self.children:
+            child.style_manager.set_hover_style(style)
+
+    def get_style_property(self, property: StyleProperty, is_hovered: bool):
+        return self.style_manager.get_resolved_property(property, is_hovered)
+        
+    def set_style_property(self, property: StyleProperty, value, state: int = StyleType.NORMAL):
+        self.style_manager.set_override(property, value, state)
+
+    def get_font(self) -> pygame.font.Font | None:
+        return self.style_manager.get_resolved_font(self.hovered)
+
+    def get_active_style(self):
+        return self.hover_style if self.hovered else self.style
+
+    def draw_children(self, surface):
+        for child in self.children:
+            child.draw(surface)
+
+    """probably should bubble up from the last element in the tree"""
+    def propagate_event(self, event):
+        for child in self.children:
+            child.handle_event(event)
+
+    def handle_event(self, event):
+        self.propagate_event(event)
+        return False
+    
+    
+class Panel(UIComponent):
+    def __init__(self, position: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0), callback: callable = None):
+        super().__init__(position, size, DefaultStyles.Panel)
         self.callback = callback
-        self.hovered = False
+  
+    def draw(self, surface):
+        rect = self.get_rect()
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
+
+        pygame.draw.rect(surface, background_color, rect)
+        if border_size > 0:
+            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+            pygame.draw.rect(surface, border_color, rect, border_size)
+
+        self.draw_children(surface)
+
+    def handle_event(self, event):
+        rect = self.get_rect()
+        if event.type == MOUSEMOTION:
+            was_hovered = self.hovered
+            self.hovered = rect.collidepoint(event.pos)
+            changed = self.hovered != was_hovered
+            self.propagate_event(event)
+            return changed
+
+        elif event.type == MOUSEBUTTONDOWN and self.hovered:
+            if self.callback:
+                self.callback()
+            self.propagate_event(event)
+            return True
+
+        self.propagate_event(event)
+        return False
+
+
+class Header(UIComponent):
+    def __init__(self, position: tuple[int, int], text: str):
+        super().__init__(position, (0, 0), DefaultStyles.Header)
+        self.text = text
+        self._font = self.style.get_font()
+        self.update_size()
+
+    def set_text_content(self, text:str):
+        self.text = text
+
+    def update_size(self):
+        width, height = self._font.size(self.text)
+        padding = 10
+        self.set_size(width + padding, height + padding)
+    
+    def draw(self, surface):
+        rect = self.get_rect()
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+        
+        if background_color != None:
+            pygame.draw.rect(surface, background_color, rect)
+        
+        text_surf = self._font.render(self.text, True, text_color)
+        text_rect = text_surf.get_rect(center=rect.center)
+        surface.blit(text_surf, text_rect)
+        self.draw_children(surface)
+
+
+class Image(UIComponent):
+    def __init__(self, src: str, alt: str = "", position: tuple[int, int] = (0, 0),
+                 size: tuple[int, int] = (0, 0)):
+        try:
+            image_surface = pygame.image.load(src)
+        except pygame.error as e:
+            print(f"Failed to load image '{src}': {e}")
+            image_surface = pygame.Surface(size)
+            image_surface.fill((255, 0, 0))  # Fallback: red surface
+
+        if size and size != (0, 0):
+            image_surface = pygame.transform.scale(image_surface, size)
+        else:
+            size = image_surface.get_size()
+
+        super().__init__(position, size, DefaultStyles.Image)
+        self.src = src
+        self.alt = alt
+        self.image_surface = image_surface
 
     def draw(self, surface):
         rect = self.get_rect()
-        color = (100, 100, 100) if self.hovered else (150, 150, 150)
-        pygame.draw.rect(surface, color, rect)
-        font = pygame.font.Font(None, 24)
-        text_surf = font.render(self.text, True, UIColors.WHITE)
+        surface.blit(self.image_surface, rect)
+        self.draw_children(surface)
+
+
+class Button(UIComponent):
+    def __init__(self, position: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0), text: str = "", callback: callable = None):
+        super().__init__(position, size, DefaultStyles.Button)
+        self.text = text
+        self.callback = callback
+
+    def draw(self, surface):
+        rect = self.get_rect()
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        
+        pygame.draw.rect(surface, background_color, rect)
+
+        if self.text != None and len(self.text) > 0:
+            text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+            font:pygame.font.Font = self.get_font()
+            text_surf = font.render(self.text, True, text_color)
+            text_rect = text_surf.get_rect(center=rect.center)
+            surface.blit(text_surf, text_rect)
+            
+        self.draw_children(surface)
+
+    def handle_event(self, event):
+        if not self.active:
+            return False
+        rect = self.get_rect()
+
+        if event.type == MOUSEMOTION:
+            was_hovered = self.hovered
+            self.hovered = rect.collidepoint(event.pos)
+            changed = self.hovered != was_hovered
+            self.propagate_event(event)
+            return changed
+
+        elif event.type == MOUSEBUTTONDOWN and self.hovered:
+            if self.callback:
+                self.callback()
+            self.propagate_event(event)
+            return True
+
+        self.propagate_event(event)
+        return False
+
+
+class DropdownItem(UIComponent):
+    def __init__(self, position: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0),text: str = "", callback: callable = None):
+        super().__init__(position, size, DefaultStyles.Dropdown)
+        self.text = text
+        self.callback = callback
+
+    def draw(self, surface):
+        rect = self.get_rect()
+
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
+        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+
+        pygame.draw.rect(surface, background_color, rect)
+        if border_size > 0:
+            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+            pygame.draw.rect(surface, border_color, rect, border_size)
+
+        font = self.get_font()
+        text_surf = font.render(self.text, True, text_color)
         text_rect = text_surf.get_rect(center=rect.center)
         surface.blit(text_surf, text_rect)
 
     def handle_event(self, event):
         if not self.active:
             return False
+        
         rect = self.get_rect()
         if event.type == MOUSEMOTION:
+            was_hovered = self.hovered
             self.hovered = rect.collidepoint(event.pos)
+            self.propagate_event(event)
+            return self.hovered != was_hovered
+        
         elif event.type == MOUSEBUTTONDOWN and self.hovered:
-            self.callback()
+            if self.callback:
+                self.callback()
+            self.propagate_event(event)
             return True
+        
+        self.propagate_event(event)
         return False
 
-class IconButton(Button):
-    def __init__(self, x, y, width, height, text, callback, icon_color):
-        super().__init__(x, y, width, height, text, callback)
-        self.icon_color = icon_color
-        self.base_color = (150, 150, 150)
-        self.selected = False
-    
-    def draw(self, surface):
-        rect = self.get_rect()
-        bg_color = (100, 100, 100) if self.hovered else self.base_color
-        pygame.draw.rect(surface, bg_color, rect)
-        icon = pygame.Rect(self._x + (self._width//2 - self._height//4), self._y + (self._height//2 - self._height//4), self._height//2, self._height//2)
-        pygame.draw.rect(surface, self.icon_color, icon)
-    
-    def activate(self):
-        self.selected = True
-        self.base_color = (100, 100, 100)
-
-    def deactivate(self):
-        self.selected = False
-        self.base_color = (150, 150, 150)
-    
-
-class DrawOptionButtonGroup:
-    def __init__(self, app, x, y, button_width = 100, button_height = 30):
-        self.app = app
-        self.draw_wall_button = IconButton(x + 20, y, button_width//2, button_height, "Wall", self.app.set_draw_walls, UIColors.BLACK)
-        self.remove_wall_button = IconButton(x + 20 + 55, y, button_width//2, button_height, "Remove", self.app.set_remove_walls, UIColors.WHITE)
-        self.set_start_button = IconButton(x + 20 + 110, y, button_width//2, button_height, "Start", self.app.set_place_start, UIColors.GREEN)
-        self.set_end_button = IconButton(x + 20 + 165, y, button_width//2, button_height, "End", self.app.set_place_end, UIColors.RED)
-    
-    def handle_event(self, event):
-        if self.draw_wall_button.handle_event(event):
-            self.deactivate_all()
-            self.draw_wall_button.activate()
-        elif self.remove_wall_button.handle_event(event):
-            self.deactivate_all()
-            self.remove_wall_button.activate()
-        elif self.set_start_button.handle_event(event):
-            self.deactivate_all()
-            self.set_start_button.activate()
-        elif self.set_end_button.handle_event(event):
-            self.deactivate_all()
-            self.set_end_button.activate()
-    
-    def draw(self, surface):
-        self.draw_wall_button.draw(surface)
-        self.remove_wall_button.draw(surface)
-        self.set_start_button.draw(surface)
-        self.set_end_button.draw(surface)
-
-    def deactivate_all(self):
-        self.draw_wall_button.deactivate()
-        self.remove_wall_button.deactivate()
-        self.set_start_button.deactivate()
-        self.set_end_button.deactivate()
-    
-    def hide():...
 
 class Dropdown(UIComponent):
-    def __init__(self, x, y, width, height, options, default=0):
-        super().__init__(x, y, width, height)
+    def __init__(self, position: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0),options: list[str] = [], default=0, callback: callable = None):
+        super().__init__(position, size, DefaultStyles.Dropdown)
         self.options = options
         self.selected = default
         self.expanded = False
+        self.callback = callback
+
+        for i, option in enumerate(options):
+            item_position = (0, (i + 1) * size[1])
+            item = DropdownItem(item_position, size, option, self.make_item_callback(i))
+            self.add_children([item])
+
+    def make_item_callback(self, index: int):
+        def callback():
+            self.selected = index
+            self.expanded = False
+
+            if self.callback:
+                self.callback(self.options[self.selected])
+        return callback
 
     def draw(self, surface):
         rect = self.get_rect()
-        pygame.draw.rect(surface, UIColors.WHITE, rect)
-        pygame.draw.rect(surface, UIColors.WHITE, rect, 1)
-        font = pygame.font.Font(None, 24)
-        text_surf = font.render(self.options[self.selected], True, UIColors.BLACK)
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
+        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+        
+        pygame.draw.rect(surface, background_color, rect)
+        if border_size > 0:
+            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+            pygame.draw.rect(surface, border_color, rect, border_size)
+
+        font = self.get_font()
+        text_surf = font.render(self.options[self.selected], True, text_color)
         text_rect = text_surf.get_rect(center=rect.center)
         surface.blit(text_surf, text_rect)
 
         if self.expanded:
-            for i, option in enumerate(self.options):
-                item_rect = pygame.Rect(
-                    rect.x, 
-                    rect.y + (i + 1) * rect.height,
-                    rect.width, 
-                    rect.height
-                )
-                pygame.draw.rect(surface, UIColors.WHITE, item_rect)
-                pygame.draw.rect(surface, UIColors.BLACK, item_rect, 1)
-                text_surf = font.render(option, True, UIColors.BLACK)
-                text_rect = text_surf.get_rect(center=item_rect.center)
-                surface.blit(text_surf, text_rect)
+            for child in self.children:
+                child.draw(surface)
 
     def handle_event(self, event):
         if not self.active:
             return False, None
+
         rect = self.get_rect()
-        if event.type == MOUSEBUTTONDOWN:
+        if event.type == MOUSEMOTION:
+            self.hovered = rect.collidepoint(event.pos)
+            if self.expanded:
+                self.propagate_event(event)
+
+        elif event.type == MOUSEBUTTONDOWN:
             if rect.collidepoint(event.pos):
                 self.expanded = not self.expanded
                 return True, None
             elif self.expanded:
-                for i in range(len(self.options)):
-                    item_rect = pygame.Rect(
-                        rect.x, 
-                        rect.y + (i + 1) * rect.height,
-                        rect.width, 
-                        rect.height
-                    )
-                    if item_rect.collidepoint(event.pos):
-                        self.selected = i
-                        self.expanded = False
-                        return True, self.options[i]
+                for child in self.children:
+                    if child.handle_event(event):
+                        return True, self.options[self.children.index(child)]
         return False, None
 
+
 class Slider(UIComponent):
-    def __init__(self, x, y, width, height, min_val, max_val, default):
-        super().__init__(x, y, width, height)
-        self.min = min_val
-        self.max = max_val
+    def __init__(self, position: tuple[int, int] = (0, 0), track_size: tuple[int, int] = (0, 0),  thumb_size: tuple[int, int] = (20, 20), min: int = 0, max: int = 1, default: int = 0, callback: callable = None):
+        super().__init__(position, track_size, DefaultStyles.Slider)
+        self.min = min
+        self.max = max
         self.value = default
         self.dragging = False
+        self.thumb_hovered = False
+        self.thumb_size = thumb_size
+        self.callback = callback
+        
 
+    def _get_thumb_rect(self, rect: pygame.Rect):
+        range_val = self.max - self.min
+        if range_val == 0:
+            center_x = rect.left 
+        else:
+            center_x = rect.left + (self.value - self.min) / range_val * rect.width
+        
+        thumb_x = center_x - self.thumb_size[0] / 2
+        thumb_y = rect.top + (rect.height - self.thumb_size[1]) / 2
+        return pygame.Rect(thumb_x, thumb_y, *self.thumb_size)
+    
+    def _get_progress_rect(self, rect:pygame.Rect):
+        range_val = self.max - self.min
+        if range_val != 0:
+            progress_width = (self.value - self.min) / range_val * rect.width
+        else:
+            progress_width = 0  # Fallback in case range is 0
+        
+        return pygame.Rect(rect.left, rect.top, progress_width, rect.height)
+    
     def draw(self, surface):
         rect = self.get_rect()
-        pygame.draw.rect(surface, UIColors.WHITE, rect)
-        pygame.draw.rect(surface, UIColors.BLACK, rect, 1)
-        pos = rect.left + (self.value - self.min) / (self.max - self.min) * rect.width
-        thumb_rect = pygame.Rect(pos - 5, rect.top - 5, 10, rect.height + 10)
-        pygame.draw.rect(surface, (100, 100, 100), thumb_rect)
+        thumb_rect = self._get_thumb_rect(rect)
+        thumb_hovered = thumb_rect.collidepoint(pygame.mouse.get_pos())
+
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        foreground_color = self.get_style_property(StyleProperty.FOREGROUND_COLOR, self.hovered)
+        border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
+        border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+        thumb_color = self.get_style_property(StyleProperty.SLIDER_THUMB_COLOR, thumb_hovered)
+
+        pygame.draw.rect(surface, background_color, rect)
+        if border_size > 0:
+            pygame.draw.rect(surface, border_color, rect, border_size)
+        
+        if foreground_color != None:
+            progress_rect = self._get_progress_rect(rect)
+            pygame.draw.rect(surface, foreground_color, progress_rect)
+
+        pygame.draw.rect(surface, thumb_color, thumb_rect)
 
     def handle_event(self, event):
         rect = self.get_rect()
+        
         if event.type == MOUSEBUTTONDOWN:
             if rect.collidepoint(event.pos):
                 self.dragging = True
+
         elif event.type == MOUSEBUTTONUP:
             self.dragging = False
-        elif event.type == MOUSEMOTION and self.dragging:
-            x = max(rect.left, min(event.pos[0], rect.right))
-            self.value = self.min + (x - rect.left) / rect.width * (self.max - self.min)
-            # Optional: Round to nearest integer for discrete steps
-            if hasattr(self, 'step'):
-                self.value = round(self.value / self.step) * self.step
-            return True
+
+        if self.dragging:
+            pos_x = event.pos[0]
+            if pos_x:
+                x = max(rect.left, min(event.pos[0], rect.right))
+                self.value = self.min + (x - rect.left) / rect.width * (self.max - self.min)
+                if hasattr(self, 'step'):
+                    self.value = round(self.value / self.step) * self.step
+                if self.callback:
+                    self.callback(self.value)
+                return True
+        
+        self.propagate_event(event)
         return False
