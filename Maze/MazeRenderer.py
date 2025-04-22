@@ -12,7 +12,24 @@ MAZE_COLORS = {
 }
 
 class MazeRenderer:
+    """
+    A class to render the maze using Pygame.
+    It creates a background surface for the maze and an overlay surface for dynamic updates.
+    The maze is centered in the canvas, and the cell size is calculated based on the canvas height.
+    The color scheme for the maze is defined in a dictionary, allowing for easy customization.
+    The maze is represented as a grid of cells, where each cell can be a wall, path, start, end, or visited cell.
+    The class provides methods to initialize the background, update the overlay based on the current maze state,
+    and draw the maze on a given surface.
+    """
     def __init__(self, maze_model: MazeModel, canvas_width: int = 650, canvas_height: int = 650, color_scheme: dict = MAZE_COLORS):
+        """Initializes the MazeRenderer with the given maze model and canvas dimensions.
+
+        Args:
+            maze_model (MazeModel): The model representing the maze structure.
+            canvas_width (int, optional): The width of the canvas. Defaults to 650.
+            canvas_height (int, optional): The height of the canvas. Defaults to 650.
+            color_scheme (dict, optional): A dictionary defining the colors for different cell types. Defaults to MAZE_COLORS.
+        """
         self.maze_model = maze_model
         self.canvas_width: int = canvas_width
         self.canvas_height: int = canvas_height
@@ -38,6 +55,7 @@ class MazeRenderer:
         self.initialize_background()
 
     def initialize_background(self):
+        """Initializes the background surface with the maze's original state."""
         # Fill the background with the color for a path.
         self.background_surface.fill(self.color_scheme.get(0, (255, 255, 255)))
         for i in range(self.maze_model.rows):
@@ -53,6 +71,7 @@ class MazeRenderer:
         self.overlay_surface.fill((0, 0, 0, 0))
 
     def update_overlay(self):
+        """Updates the overlay surface to reflect the current state of the maze."""
         self.overlay_surface.fill((0, 0, 0, 0))
         for i in range(self.maze_model.rows):
             for j in range(self.maze_model.cols):
@@ -66,6 +85,7 @@ class MazeRenderer:
                     pygame.draw.rect(self.overlay_surface, color, rect)
 
     def draw(self, surface: pygame.Surface):
+        """Draws the maze on the given surface, including the background and overlay."""
         # Blit both the background and overlay surfaces using the computed offsets.
         surface.blit(self.background_surface, (self.offset_x, self.offset_y))
         surface.blit(self.overlay_surface, (self.offset_x, self.offset_y))
