@@ -97,6 +97,29 @@ class MazeModel:
                 self.current_maze[x][y] = val
         self.last_step = upto_index
         self.current_step = upto_index
+    
+    def remove_previous_steps(self, step_ix, step_ix_end):
+        """Method to remove previous steps from the current maze.
+
+        Args:
+            step_ix (int): The index of the first step to remove.
+            step_ix_end (int): The index of the last step to remove.
+        """
+
+        # Check if the current step is the found path and mark it as visited.
+        if self.steps[self.current_step][0][2] == 'P':
+            for (x, y, val) in self.steps[self.current_step]:
+                self.current_maze[x][y] = 'V'
+            step_ix_end -= 1
+
+        # Iterate through the specified steps and erase them from the current maze.
+        for i in range(step_ix, step_ix_end + 1):
+            for (x, y, val) in self.steps[i]:
+                self.current_maze[x][y] = 0
+
+        # Update the last step to the previous step.
+        self.last_step = step_ix
+        self.current_step = step_ix
 
     def display_step(self, step_idx):
         """
@@ -116,7 +139,7 @@ class MazeModel:
             return
 
         if step_idx < self.last_step:
-            self.rebuild_state(step_idx)
+            self.remove_previous_steps(step_idx, self.last_step)
         else:
             # Apply steps incrementally.
             for i in range(self.last_step + 1, step_idx + 1):
