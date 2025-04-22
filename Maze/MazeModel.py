@@ -77,7 +77,7 @@ class MazeModel:
         self.current_step = -1
         self.last_step = -1
 
-        _, raw_steps = solver.solve(copy.deepcopy(self.original_maze), start, end)
+        _, raw_steps = solver.solve(self.original_maze, start, end)
 
         # Some algorithms might return a single long list. Standardize it.
         if len(raw_steps) == 1 and len(raw_steps[0]) > 1:
