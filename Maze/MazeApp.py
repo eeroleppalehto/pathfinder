@@ -31,7 +31,7 @@ class MazeApp:
         self.speed = 1
         self.max_speed = 20
         self.step_counter = 0
-        self.final_step_count = ""
+        self.final_step_count = 0
 
         self.cursor = Cursor()
         self.maze_generator = MazeGenerator()
