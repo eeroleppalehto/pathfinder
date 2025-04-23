@@ -2,6 +2,8 @@ import pygame
 from typing import Optional, Union
 from .StyleEnums import StyleProperty, StyleType
 from .StyleSheet import StyleGroup, StyleSheet, DEFAULT
+from .StyleFilters import FilterToken, apply_all_filters, apply_filter
+
 from UserInterface.Defaults.DefaultStyles import DefaultStyles
 
 INHERITABLE_STYLE_PROPERTIES = (
@@ -14,8 +16,17 @@ INHERITABLE_STYLE_PROPERTIES = (
     "border_size",
     "slider_thumb_color",
     "text_align",
+    "filter"
 )
 
+COMPUTED_STYLE_PROPERTIES = (
+    StyleProperty.BACKGROUND_COLOR,
+    StyleProperty.FOREGROUND_COLOR,
+    StyleProperty.TEXT_COLOR,
+    StyleProperty.BORDER_COLOR,
+)
+
+NUM_COMPUTED_STYLE_PROPERTIES = len(COMPUTED_STYLE_PROPERTIES) - 1
 NUM_STYLE_PROPERTIES = len(StyleProperty) - 1
 
 
@@ -23,18 +34,53 @@ class InlineStyle:
     """Mixin for adding inline style overrides (normal state only)."""
     def get_style_property(self, prop: StyleProperty, is_hovered: bool):
         style_type = StyleType.HOVER if is_hovered else StyleType.NORMAL
-        return self._style_manager.get_resolved_property(prop, style_type)
+        return self.style_manager.get_resolved_property(prop, style_type)
 
     def set_style_property(self, prop: StyleProperty, value):
-        self._style_manager.set_override(prop, value)
+        self.style_manager.set_override(prop, value)
+
+    def set_computed_style_property(self, prop: StyleProperty, value: tuple[int, int, int] | None):
+        self.style_manager.set_computed_override(prop, value)
+        print("Set computed style property called!")
+
+    @property
+    def filter(self) -> list[FilterToken]:
+        return self.get_style_property(StyleProperty.FILTER, is_hovered=False)
+
+    @filter.setter
+    def filter(self, token: Union[FilterToken, list[FilterToken]]):
+        if(isinstance(token, list) == False):
+            token = [token]
+
+        self.set_style_property(StyleProperty.FILTER, token)
+
 
     @property
     def background_color(self) -> Optional[tuple[int, int, int]]:
         return self.get_style_property(StyleProperty.BACKGROUND_COLOR, False)
-
+    
     @background_color.setter
     def background_color(self, color: Optional[tuple[int, int, int]]):
         self.set_style_property(StyleProperty.BACKGROUND_COLOR, color)
+        self.set_computed_style_property(StyleProperty.BACKGROUND_COLOR, color)
+
+    @property
+    def foreground_color(self) -> Optional[tuple[int, int, int]]:
+        return self.get_style_property(StyleProperty.FOREGROUND_COLOR, False)
+    
+    @foreground_color.setter
+    def foreground_color(self, color: Optional[tuple[int, int, int]]):
+        self.set_style_property(StyleProperty.FOREGROUND_COLOR, color)
+        self.set_computed_style_property(StyleProperty.FOREGROUND_COLOR, color)
+
+    @property
+    def border_color(self) -> Optional[tuple[int, int, int]]:
+        return self.get_style_property(StyleProperty.BORDER_COLOR, False)
+    
+    @border_color.setter
+    def border_color(self, color: Optional[tuple[int, int, int]]):
+        self.set_style_property(StyleProperty.BORDER_COLOR, color)
+        self.set_computed_style_property(StyleProperty.BORDER_COLOR, color)
 
     @property
     def font_family(self) -> Optional[str]:
@@ -59,6 +105,7 @@ class InlineStyle:
     @text_color.setter
     def text_color(self, color: Optional[tuple[int, int, int]]):
         self.set_style_property(StyleProperty.TEXT_COLOR, color)
+        self.set_computed_style_property(StyleProperty.TEXT_COLOR, color)
 
     @property
     def slider_thumb_color(self) -> Optional[tuple[int, int, int]]:
@@ -78,18 +125,19 @@ class InlineStyle:
 
 class ComponentStyleManager:
     """Manages base and inline style overrides (normal state only)."""
-    def __init__(self, base_style_group: StyleGroup):
-        self.base_style_group = base_style_group
-        self._default_style_group = None
+    def __init__(self, component_name, normal_style, hover_style):
+        self.base_style_group = StyleGroup(None, None)
+        self._default_style_group = DefaultStyles.get_by_component_name(component_name)
         self._inline_mask = StyleProperty.NONE
         self._inline_values = [None] * NUM_STYLE_PROPERTIES
+        self._computed_normal_style_values = [None] * NUM_STYLE_PROPERTIES
+        self._computed_hover_style_values = [None] * NUM_STYLE_PROPERTIES
         self._inline_font = None
-        
+
+        self.set_normal_style(normal_style, component_name)
+        self.set_hover_style(hover_style, component_name)
 
     def set_normal_style(self, style: StyleSheet, component_name: str):
-        if self._default_style_group is None:
-            self._default_style_group = DefaultStyles.get_by_component_name(component_name)
-
         default_sheet = self._default_style_group.normal
         
         for property in INHERITABLE_STYLE_PROPERTIES:
@@ -99,6 +147,30 @@ class ComponentStyleManager:
 
         self.base_style_group = StyleGroup(style, self.base_style_group.hover)
 
+        if style._filter == None:
+            return
+        
+        for property in COMPUTED_STYLE_PROPERTIES:
+            if(self._inline_mask & property):
+                continue
+
+
+            property_name = property.name.lower()
+            idx = property.get_index()
+
+            value = getattr(style, property_name)
+            if(value == None):
+                value = self._inline_values[idx]
+                if value == None:
+                    continue
+
+            for token in style._filter:
+                value = apply_filter(value, token)
+
+            self._computed_normal_style_values[idx] = value
+
+
+      
     def set_hover_style(self, style: StyleSheet, component_name: str):
         if self._default_style_group is None:
             self._default_style_group = DefaultStyles.get_by_component_name(component_name)
@@ -109,15 +181,115 @@ class ComponentStyleManager:
             val = getattr(style, property)
             if val is DEFAULT:
                 setattr(style, property, getattr(default_sheet, property))
-
+        
         self.base_style_group = StyleGroup(self.base_style_group.normal, style)
+
+        if style._filter == None:
+            return
+        
+        print("style filter is not none!")
+        
+        for property in COMPUTED_STYLE_PROPERTIES:
+            property_name = property.name.lower()
+            value = getattr(style, property_name)
+            idx = property.get_index()
+
+            if(value == None):
+                value = self._inline_values[idx]
+                if value == None:
+                    value = getattr(self.base_style_group.normal, property_name)
+                    if(value == None):
+                        continue
+
+            for token in style._filter:
+                value = apply_filter(value, token)
+
+            self._computed_hover_style_values[idx] = value
+
+    def normal_style_exists(self):
+        return self.base_style_group != None and self.base_style_group.normal != None
+    
+    def hover_style_exists(self):
+        return self.base_style_group != None and self.base_style_group.hover != None
+    
+    def get_normal_style(self):
+        if self.base_style_group != None:
+            return self.base_style_group.normal
+        return None
+    
+    def get_hover_style(self):
+        if self.base_style_group != None:
+            return self.base_style_group.hover
+        return None
+    
+    def set_computed_override(self, prop:StyleProperty, value: tuple[int, int, int] | None):
+        if prop is StyleProperty.NONE or value == None:
+            return
+        
+        
+        if(prop not in COMPUTED_STYLE_PROPERTIES):
+            return 
+      
+        normal_filter = self.get_resolved_property(StyleProperty.FILTER)
+        if(normal_filter != None):
+            computed_color = value
+            for computed_color in normal_filter:
+                computed_color = apply_filter(value, computed_color)
+                
+            idx = prop.get_index()
+            self._computed_normal_style_values[idx] = computed_color
+
+        hover_filter_exists = self.base_style_group.hover and self.base_style_group.hover._filter
+        if hover_filter_exists:
+            hover_filter = self.base_style_group.hover._filter
+            computed_color = self.get_resolved_property(prop, StyleType.HOVER)
+
+            for computed_color in hover_filter:
+                computed_color = apply_filter(value, computed_color)
+                
+            idx = prop.get_index()
+            self._computed_hover_style_values[idx] = computed_color
+
+
+
+    def update_computed_style(self, stylesheet, prop:StyleProperty, value: tuple[int, int, int] | None):
+        is_normal_stylesheet = stylesheet == self.base_style_group.normal
+        if is_normal_stylesheet and self._inline_mask & prop:
+            return
+        
+        if prop is StyleProperty.NONE or value == None:
+            return
+        
+        if(prop not in COMPUTED_STYLE_PROPERTIES):
+            return 
+            
+        filter = stylesheet._filter
+        if(filter == None):
+            return
+        
+        computed_color = value
+        for token in filter:
+            computed_color = apply_filter(computed_color, token)
+            
+        idx = prop.get_index()
+        if is_normal_stylesheet:
+            self._computed_normal_style_values[idx] = computed_color
+        else:
+            self._computed_hover_style_values[idx] = computed_color
+
 
     def set_override(self, prop: StyleProperty, value):
         if prop is StyleProperty.NONE:
             return
-        idx = prop.get_index()
-        self._inline_mask |= prop
-        self._inline_values[idx] = value
+        
+        if value is None:
+            self._inline_mask &= ~prop
+            self._inline_values[idx] = None
+        else:
+            idx = prop.get_index()
+            self._inline_mask |= prop
+            self._inline_values[idx] = value
+
         if prop in (StyleProperty.FONT_FAMILY, StyleProperty.FONT_SIZE):
             self._inline_font = None
 
@@ -126,21 +298,44 @@ class ComponentStyleManager:
         self._inline_values = [None] * NUM_STYLE_PROPERTIES
         self._inline_font = None
 
-    def get_resolved_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL):
+    def get_resolved_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL, is_computed = False):
+        if is_computed:
+            if(prop not in COMPUTED_STYLE_PROPERTIES):
+                return self._get_non_computed_style_property(prop, style_type)
+            else:
+                return self._get_computed_style_property(prop, style_type)
+            
+        else:
+            return self._get_non_computed_style_property(prop, style_type)
+        
+    def _get_computed_style_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL):
+        if style_type == StyleType.NORMAL:
+            value = self._computed_normal_style_values[prop.get_index()]
+            if(value):
+                return value
+        else:
+            value = self._computed_hover_style_values[prop.get_index()]
+            if(value):
+                return value
+        
+        return self._get_non_computed_style_property(prop, style_type)
+    
+    def _get_non_computed_style_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL):
         if prop is StyleProperty.NONE:
             return None
+        
         idx = prop.get_index()
         if style_type == StyleType.NORMAL:
             if self._inline_mask & prop:
                 return self._inline_values[idx]
+            
             return getattr(self.base_style_group.normal, prop.name.lower())
         else:
             value = getattr(self.base_style_group.hover, prop.name.lower())
             if value:
                 return value
             return getattr(self.base_style_group.normal, prop.name.lower())
-
-
+        
     def get_resolved_font(self, style_type: int) -> pygame.font.Font:
         if self._inline_font:
             return self._inline_font

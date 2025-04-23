@@ -3,6 +3,9 @@ import pygame
 from .Components.UIComponents import Button, Dropdown, Header, Slider, Panel
 from .Core.UIRoot import UIRoot
 from .Styles.StyleSheet import StyleSheet
+from .Styles.StyleFilters import brightness
+from .Styles.StyleEnums import StyleType
+from .Core.StyleUtilities import apply_style_to_components
 
 
 class UserInterface:
@@ -18,10 +21,12 @@ class UserInterface:
         self._update_component_styles()
 
     def _update_component_styles(self):
+        style_sheet = StyleSheet(filter = brightness(0.7))
         self.draw_start_button.background_color       = (76, 175, 80)
         self.draw_end_button.background_color       = (244, 67, 54)
         self.draw_empty_button.background_color       = (200, 220, 240)  # very light blue
         self.draw_wall_button.background_color       = (66, 66, 66)
+        apply_style_to_components(style_type=StyleType.HOVER, style_sheet=style_sheet, components=[self.draw_start_button, self.draw_end_button,  self.draw_empty_button, self.draw_wall_button])
 
     def _create_components(self):
         self.root = UIRoot()

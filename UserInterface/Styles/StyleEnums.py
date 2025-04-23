@@ -15,7 +15,8 @@ class StyleProperty(enum.IntFlag):
     BORDER_SIZE = 64
     SLIDER_THUMB_COLOR = 128
     TEXT_ALIGN = 256
-    END = 512
+    FILTER = 512
+    END = 1024
 
     def get_index(self):
         if self == StyleProperty.NONE:

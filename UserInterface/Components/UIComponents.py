@@ -17,15 +17,13 @@ class UIComponent(InlineStyle):
     Manages position, size, style, parent/child hierarchy,
     event propagation, and activation state.
     """
-    def __init__(self, pos: tuple[int, int], size: tuple[int, int], style_group: StyleGroup):
+    def __init__(self, pos: tuple[int, int], size: tuple[int, int], component_name: str, style_group: StyleGroup):
         self._local_position = pos  
         self._size = size
         self.active = True
         self.hovered = False
         self.children: list[UIComponent] = []
-        self.style_manager = ComponentStyleManager(style_group)
-        self.style = style_group.normal
-        self.hover_style = style_group.hover
+        self.style_manager = ComponentStyleManager(component_name, style_group.normal, style_group.hover)
         self.parent: UIComponent | None = None
         self.root: UIRoot | None = None
         self._name = "DEFAULT"
@@ -86,18 +84,29 @@ class UIComponent(InlineStyle):
         return pygame.Rect(abs_pos[0], abs_pos[1], self._size[0], self._size[1])
 
     def set_style(self, style: StyleSheet):
+        if self.style_manager.normal_style_exists():
+            old_style = self.style_manager.get_normal_style()
+            old_style.remove_from_object_refereces(self)
         
+        style.add_to_object_references(self)
         self.style_manager.set_normal_style(style, self.name)
+
         for child in self.children:
             child.style_manager.set_normal_style(style, self.name)
 
     def set_hover_style(self, style: StyleSheet):
+        if self.style_manager.hover_style_exists():
+            old_style = self.style_manager.get_hover_style()
+            old_style.remove_from_object_refereces(self)
+        
+        style.add_to_object_references(self)
         self.style_manager.set_hover_style(style, self.name)
+
         for child in self.children:
             child.style_manager.set_hover_style(style, self.name)
 
-    def get_style_property(self, property: StyleProperty, is_hovered: bool):
-        return self.style_manager.get_resolved_property(property, is_hovered)
+    def get_style_property(self, property: StyleProperty, is_hovered: bool, is_computed: bool = False):
+        return self.style_manager.get_resolved_property(property, is_hovered, is_computed)
         
     def set_style_property(self, property: StyleProperty, value):
         self.style_manager.set_override(property, value)
@@ -139,14 +148,14 @@ class Panel(UIComponent):
     and can hold other components. Supports click callbacks and hover detection.
     """
     def __init__(self, pos: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0), callback: callable = None):
-        super().__init__(pos, size, DefaultStyles.Panel)
+        super().__init__(pos, size, "PANEL", DefaultStyles.Panel)
         self._name = "PANEL"
         self.callback = callback
         
   
     def draw(self, surface):
         rect = self.get_rect()
-        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
 
         pygame.draw.rect(surface, background_color, rect)
@@ -183,10 +192,11 @@ class Header(UIComponent):
     text color, and alignment styles.
     """
     def __init__(self, pos: tuple[int, int], text: str):
-        super().__init__(pos, (0, 0), DefaultStyles.Header)
+        super().__init__(pos, (0, 0), "HEADER", DefaultStyles.Header)
         self._name = "HEADER"
         self.text = text
-        self._font = self.style.get_font()
+        self._font = self.style_manager.get_resolved_font(StyleType.NORMAL)
+        
         self._cache_key = None
         self._cached_surf = None
         self.needs_update = True
@@ -212,8 +222,8 @@ class Header(UIComponent):
 
     def draw(self, surface):
         rect = self.get_rect()
-        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
-        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
+        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered, True)
         alignment = self.get_style_property(StyleProperty.TEXT_ALIGN, self.hovered) or 'left'
         
         if bg_color is not None:
@@ -264,7 +274,7 @@ class Image(UIComponent):
         else:
             size = image_surface.get_size()
 
-        super().__init__(pos, size, DefaultStyles.Image)
+        super().__init__(pos, size, "IMAGE", DefaultStyles.Image)
         self._name = "IMAGE"
         self.src = src
         self.alt = alt
@@ -283,7 +293,7 @@ class Button(UIComponent):
     (with or without a value parameter) on click.
     """
     def __init__(self, pos=(0, 0), size=(0, 0), text="", callback=None, value=None):
-        super().__init__(pos, size, DefaultStyles.Button)
+        super().__init__(pos, size, "BUTTON", DefaultStyles.Button)
         self._name = "BUTTON"
         self._text = text
         self._value = value
@@ -303,11 +313,11 @@ class Button(UIComponent):
 
     def draw(self, surface):
         rect = self.get_rect()
-        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         pygame.draw.rect(surface, bg_color, rect)
 
         if self._text:
-            text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+            text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered, True)
             font = self.get_font()
             cache_key = (self._text, text_color, rect.size)
             if cache_key != self._text_cache_key:
@@ -355,7 +365,7 @@ class DropdownItem(UIComponent):
     """
 
     def __init__(self, pos=(0, 0), size=(0, 0), text="", callback=None):
-        super().__init__(pos, size, DefaultStyles.Dropdown)
+        super().__init__(pos, size, "DROPDOWN ITEM", DefaultStyles.Dropdown)
         self._name = "DROPDOWN ITEM"
         self._text = text
         self.callback = callback
@@ -366,14 +376,14 @@ class DropdownItem(UIComponent):
 
     def draw(self, surface):
         rect = self.get_rect()
-        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
         pygame.draw.rect(surface, bg_color, rect)
         if border_size:
-            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered, True)
             pygame.draw.rect(surface, border_color, rect, border_size)
 
-        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered, True)
         font = self.get_font()
         cache_key = (self._text, text_color, rect.size)
         if cache_key != self._text_cache_key:
@@ -415,7 +425,7 @@ class Dropdown(UIComponent):
     """
 
     def __init__(self, pos=(0, 0), size=(0, 0), options=None, default=0, callback=None):
-        super().__init__(pos, size, DefaultStyles.Dropdown)
+        super().__init__(pos, size, "DROPDOWN", DefaultStyles.Dropdown)
         self._name = "DROPDOWN"
         self.options = options or []
         self.selected = default
@@ -442,15 +452,15 @@ class Dropdown(UIComponent):
 
     def draw(self, surface):
         rect = self.get_rect()
-        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
+        bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
         pygame.draw.rect(surface, bg_color, rect)
 
         if border_size:
-            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered, True)
             pygame.draw.rect(surface, border_color, rect, border_size)
 
-        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered)
+        text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered, True)
         font = self.get_font()
         text = self.options[self.selected]
         cache_key = (text, text_color, rect.size)
@@ -502,7 +512,7 @@ class Slider(UIComponent):
     and reports value changes via callback.
     """
     def __init__(self, pos: tuple[int, int] = (0, 0), track_size: tuple[int, int] = (0, 0),  thumb_size: tuple[int, int] = (20, 20), min: int = 0, max: int = 1, default: int = 0, callback: callable = None):
-        super().__init__(pos, track_size, DefaultStyles.Slider)
+        super().__init__(pos, track_size, "SLIDER", DefaultStyles.Slider)
         self._name = "SLIDER"
         self.min = min
         self.max = max
@@ -539,10 +549,10 @@ class Slider(UIComponent):
         thumb_rect = self._get_thumb_rect(rect)
         thumb_hovered = thumb_rect.collidepoint(pygame.mouse.get_pos())
 
-        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered)
-        foreground_color = self.get_style_property(StyleProperty.FOREGROUND_COLOR, self.hovered)
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
+        foreground_color = self.get_style_property(StyleProperty.FOREGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
-        border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered)
+        border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered, True)
         thumb_color = self.get_style_property(StyleProperty.SLIDER_THUMB_COLOR, thumb_hovered)
 
         pygame.draw.rect(surface, background_color, rect)
