@@ -26,7 +26,12 @@ class UserInterface:
         self.draw_end_button.background_color       = (244, 67, 54)
         self.draw_empty_button.background_color       = (200, 220, 240)  # very light blue
         self.draw_wall_button.background_color       = (66, 66, 66)
-        apply_style_to_components(style_type=StyleType.HOVER, style_sheet=style_sheet, components=[self.draw_start_button, self.draw_end_button,  self.draw_empty_button, self.draw_wall_button])
+
+        apply_style_to_components(
+            style_type=StyleType.HOVER, 
+            style_sheet=style_sheet, 
+            components=[self.draw_start_button, self.draw_end_button,  self.draw_empty_button, self.draw_wall_button]
+        )
 
     def _create_components(self):
         self.root = UIRoot()
@@ -49,13 +54,10 @@ class UserInterface:
 
         self.step_counter_header = Header((30, 370), f"Total: {self.app.step_counter}")
         self.step_counter_header.text_color = (0,0,255)
-   
         self.final_step_count_header = Header((30, 400), f"Path: {self.app.final_step_count}")
         self.final_step_count_header.text_color = (255, 0, 255)
-
         self.drawing_tools_header = Header((20, 560), "Drawing tools")
         self.drawing_tools_panel = Panel((20, 590), (210, 40))
-
         self.draw_start_button = Button((5, 5), (30, 30), "", self.app.set_draw_state, value="place_start")
         self.draw_end_button = Button((40, 5), (30, 30), "", self.app.set_draw_state, value="place_end")
         self.draw_wall_button = Button((80, 5), (30, 30), "", self.app.set_draw_state, value="draw_walls")
@@ -75,11 +77,11 @@ class UserInterface:
         self.control_panel.add_children(self.panels)
         self.control_panel.add_children([self.steps_header, self.step_counter_header, self.final_step_count_header])
         self.root.add_component(self.control_panel)
-    
+
     def draw(self, surface):
-        self.speed_header.set_text_content(f"Speed: {self.speed_slider.value:.1f}x")
-        self.step_counter_header.set_text_content(f"Total: {self.app.step_counter}")
-        self.final_step_count_header.set_text_content(f"Path: {self.app.final_step_count}")
+        self.speed_header.text = f"Speed: {self.speed_slider.value:.1f}x"
+        self.step_counter_header.text = f"Total: {self.app.step_counter}"
+        self.final_step_count_header.text = f"Path: {self.app.final_step_count}"
         self.root.draw(surface)
 
     def set_timeline(self, min, max, value):

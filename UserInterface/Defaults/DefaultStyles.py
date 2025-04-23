@@ -44,7 +44,7 @@ BUTTON_HOVER_STYLE = StyleSheet(
     border_color=None,
     border_size=None,
     thumb_color=None,
-    filter = [FilterToken(FilterType.BRIGHTNESS, 1.5)]
+    filter = [FilterToken(FilterType.BRIGHTNESS, 1.35)]
 )
 
 HEADER_STYLE = StyleSheet(

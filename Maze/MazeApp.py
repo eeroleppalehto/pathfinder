@@ -41,7 +41,7 @@ class MazeApp:
         self.canvas_height = 650
         self.control_panel_width = 250
         self.last_scrubbed_step = 0
-        self.target_fps = 60
+        self.target_fps = 1000
 
         self.speed = 1
         self.max_speed = 20
@@ -112,7 +112,7 @@ class MazeApp:
                     )
                     self.maze_model.current_step += steps_to_apply
                 else:
-                    self.final_step_count = len(self.maze_model.steps) - 1
+                    self.final_step_count = len(self.maze_model.steps)
 
             # --- Draw Frame ---
             self.screen.fill(COLOR_WINDOW_BG)
@@ -125,7 +125,7 @@ class MazeApp:
                     max=len(self.maze_model.steps) - 1,
                     value=self.maze_model.current_step
                 )
-
+     
             pygame.display.flip()
             self.clock.tick(self.target_fps)  
             fps_counter.update(current_time, loop_start_time)
@@ -153,11 +153,14 @@ class MazeApp:
 
     def stop(self):
         self.is_playing = False
+        self.step_counter = 0
+        self.final_step_count = 0
         self.maze_model.current_step = -1
         self.maze_model.steps = []
         self.UserInterface.reset_timeline()
         self.maze_model.current_maze = copy.deepcopy(self.maze_model.original_maze)
         self.maze_renderer.initialize_background()
+        
 
     def next_step(self):
         self.pause()
@@ -195,6 +198,9 @@ class MazeApp:
 
         self.maze_model.current_step = new_step
         self.last_scrubbed_step = new_step
+        self.step_counter = new_step
+        self.final_step_count = len(self.maze_model.steps)
+
         self.pause()
 
     def _apply_steps_in_range(self, start: int, end: int):
@@ -217,6 +223,7 @@ class MazeApp:
             updates = self.maze_model.steps[i]
             for x, y, value in updates:
                 self.maze_model.current_maze[x][y] = value
+            
             self.maze_renderer.incremental_update_overlay(updates)
 
     def _rewind_to_step(self, step_index: int):
@@ -243,8 +250,8 @@ class MazeApp:
         return
 
     def set_draw_state(self, draw_state):
-        valid_states = ["draw_walls", "remove_walls", "place_start", "place_end"]
-        if draw_state in valid_states:
+        VALID_STATES = ["draw_walls", "remove_walls", "place_start", "place_end"]
+        if draw_state in VALID_STATES :
             self.drawing_state = draw_state
             self.maze_drawing.current_draw_state = self.drawing_state
             self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions[self.drawing_state]

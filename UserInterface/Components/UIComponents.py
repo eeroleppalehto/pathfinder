@@ -194,17 +194,28 @@ class Header(UIComponent):
     def __init__(self, pos: tuple[int, int], text: str):
         super().__init__(pos, (0, 0), "HEADER", DefaultStyles.Header)
         self._name = "HEADER"
-        self.text = text
+        self._text = text
         self._font = self.style_manager.get_resolved_font(StyleType.NORMAL)
         
         self._cache_key = None
         self._cached_surf = None
         self.needs_update = True
         self.update_size()
-
+        
+    @property
+    def text(self) -> str:
+        return self._text
+    
+    @text.setter
+    def text(self, string: str):
+        if self._text != string:
+            self._text = string
+            self.update_size()
+            self.needs_update = True
+    
     def set_text_content(self, text: str):
-        if self.text != text:
-            self.text = text
+        if self._text != text:
+            self._text = text
             self.update_size()
             self.needs_update = True
 
@@ -213,7 +224,7 @@ class Header(UIComponent):
         self.needs_update = True
 
     def update_size(self):
-        lines = self.text.split('\n') if self.text else ['']
+        lines = self._text.split('\n') if self._text else ['']
         line_height = self._font.get_linesize()
         max_width = max(self._font.size(line)[0] for line in lines)
         total_height = line_height * len(lines)
@@ -230,9 +241,9 @@ class Header(UIComponent):
             pygame.draw.rect(surface, bg_color, rect)
 
         
-        cache_key = (self.text, text_color, alignment)
+        cache_key = (self._text, text_color, alignment)
         if self.needs_update or self._cache_key != cache_key or self._cached_surf is None:
-            lines = self.text.split('\n')
+            lines = self._text.split('\n')
             width, height = self.get_size()
             line_height = self._font.get_linesize()
             surf = pygame.Surface((width, height), pygame.SRCALPHA)
