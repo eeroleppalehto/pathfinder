@@ -1,7 +1,24 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import copy
 
+if TYPE_CHECKING:
+    from MazeGenerator import MazeGenerator
+
 class MazeModel:
-    def __init__(self, maze_generator, maze_width=200, maze_height=200, seed=0):
+    """
+    This class is responsible for storing all relevant data relating to mazes and
+    their algorithms.
+    It contains the original maze, the current maze, and the steps taken by the algorithm.
+    It also provides methods to generate new mazes, run algorithms, and display steps.
+
+    Mazes are matrices where 
+    walls are represented as 1,
+    empty spaces by 0,
+    start cell by 'S',
+    and end cell by 'E'.
+    """
+    def __init__(self, maze_generator: MazeGenerator, maze_width=200, maze_height=200, seed=0):
         # Use the provided MazeGenerator instance to generate the maze.
         self.maze_generator = maze_generator
         self.original_maze = self.maze_generator.generate(maze_width, maze_height, seed)
@@ -14,6 +31,14 @@ class MazeModel:
         self.last_step = -1
 
     def generate_new_maze(self, maze_width, maze_height, seed=0):
+        """
+        Generate a new maze with the specified width, height, and seed.
+
+        Args:
+            maze_width (int): The width of the maze.
+            maze_height (int): The height of the maze.
+            seed (int, optional): The seed for random generation. Defaults to 0.
+        """
         self.original_maze = self.maze_generator.generate(maze_width, maze_height, seed)
         self.rows = len(self.original_maze)
         self.cols = len(self.original_maze[0])
@@ -34,6 +59,13 @@ class MazeModel:
         return start, end
 
     def run_algorithm(self, solver_factory, algorithm_name):
+        """
+        Run the specified algorithm to solve the maze.
+
+        Args:
+            solver_factory (Callable): A factory function to create a solver instance.
+            algorithm_name (str): The name of the algorithm to use for solving.
+        """
         solver = solver_factory(algorithm_name)
         start, end = self.get_start_end()
         if not start or not end:
@@ -67,6 +99,14 @@ class MazeModel:
         self.current_step = upto_index
 
     def display_step(self, step_idx):
+        """
+        Display the maze at a specific step index.
+        This method updates the current maze to reflect the state at the given step index.
+        It handles both forward and backward navigation through the steps.
+
+        Args:
+            step_idx (int): The index of the step to display.
+        """
         if step_idx < -1 or step_idx >= len(self.steps):
             return
 
