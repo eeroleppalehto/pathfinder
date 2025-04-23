@@ -1,5 +1,5 @@
-from .UIStyles import StyleSheet, StyleGroup
-# Base styles
+from UserInterface.Styles.StyleSheet import StyleSheet, StyleGroup
+
 DEFAULT_STYLE = StyleSheet(
     background_color=(248, 250, 252),         # soft cool white
     foreground_color=(99, 155, 255),           # vibrant blue
@@ -12,18 +12,18 @@ DEFAULT_STYLE = StyleSheet(
 )
 
 DEFAULT_HOVER_STYLE = StyleSheet(
-    background_color=(240, 243, 250),
-    foreground_color=(79, 135, 235),
-    text_color=(34, 34, 34),
+    background_color=None,
+    foreground_color=None,
+    text_color=None,
     font_family=None,
-    font_size=20,
-    border_color=(210, 215, 230),
-    border_size=1,
-    thumb_color=(79, 135, 235)
+    font_size=None,
+    border_color=None,
+    border_size=None,
+    thumb_color=None
 )
 
 BUTTON_STYLE = StyleSheet(
-    background_color=(0, 120, 215),           # Windows-style blue
+    background_color=(0, 120, 215),    
     foreground_color=(255, 255, 255),
     text_color=(255, 255, 255),
     font_size=20,
@@ -63,15 +63,7 @@ DROPDOWN_STYLE = StyleSheet(
     thumb_color=(0, 120, 215)
 )
 
-DROPDOWN_HOVER_STYLE = StyleSheet(
-    background_color=(245, 247, 250),
-    foreground_color=None,
-    text_color=(50, 50, 50),
-    font_size=20,
-    border_color=(200, 205, 215),
-    border_size=1,
-    thumb_color=(0, 105, 200)
-)
+DROPDOWN_HOVER_STYLE = DEFAULT_HOVER_STYLE
 
 SLIDER_STYLE = StyleSheet(
     background_color=(225, 230, 240),
@@ -83,15 +75,7 @@ SLIDER_STYLE = StyleSheet(
     thumb_color=(0, 120, 215)
 )
 
-SLIDER_HOVER_STYLE = StyleSheet(
-    background_color=(220, 225, 235),
-    foreground_color=(79, 135, 235),
-    text_color=(0, 0, 0),
-    font_size=20,
-    border_color=(185, 195, 210),
-    border_size=2,
-    thumb_color=(0, 105, 200)
-)
+SLIDER_HOVER_STYLE = DEFAULT_HOVER_STYLE
 
 PANEL_STYLE = StyleSheet(
     background_color=(250, 251, 253),
@@ -102,14 +86,7 @@ PANEL_STYLE = StyleSheet(
     border_size=1
 )
 
-PANEL_HOVER_STYLE = StyleSheet(
-    background_color=(245, 247, 250),
-    foreground_color=None,
-    text_color=None,
-    font_size=20,
-    border_color=(210, 215, 225),
-    border_size=1
-)
+PANEL_HOVER_STYLE = DEFAULT_HOVER_STYLE
 
 IMAGE_STYLE = StyleSheet(
     background_color=None,
@@ -122,13 +99,31 @@ IMAGE_STYLE = StyleSheet(
     thumb_color=None
 )
 
-IMAGE_HOVER_STYLE = IMAGE_STYLE
+IMAGE_HOVER_STYLE = DEFAULT_HOVER_STYLE
 
 class DefaultStyles:
     Default  = StyleGroup(DEFAULT_STYLE,     DEFAULT_HOVER_STYLE)
-    Image = StyleGroup(IMAGE_STYLE, IMAGE_HOVER_STYLE)
+    Image    = StyleGroup(IMAGE_STYLE, IMAGE_HOVER_STYLE)
     Button   = StyleGroup(BUTTON_STYLE,      BUTTON_HOVER_STYLE)
     Header   = StyleGroup(HEADER_STYLE,      HEADER_HOVER_STYLE)
     Dropdown = StyleGroup(DROPDOWN_STYLE,    DROPDOWN_HOVER_STYLE)
     Slider   = StyleGroup(SLIDER_STYLE,      SLIDER_HOVER_STYLE)
     Panel    = StyleGroup(PANEL_STYLE,       PANEL_HOVER_STYLE)
+    
+    @staticmethod
+    def get_by_component_name(type_name: str = "DEFAULT") -> StyleGroup:
+        if type_name == "BUTTON":
+            return DefaultStyles.Button
+        if type_name == "HEADER":
+            return DefaultStyles.Header
+        if type_name == "DROPDOWN" or type_name == "DROPDOWN ITEM":
+            return DefaultStyles.Dropdown
+        if type_name == "SLIDER":
+            return DefaultStyles.Slider
+        if type_name == "PANEL":
+            return DefaultStyles.Panel
+        if type_name == "IMAGE":
+            return DefaultStyles.Image
+        
+        return DefaultStyles.Default
+

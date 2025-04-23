@@ -1,9 +1,8 @@
 from __future__ import annotations
 import typing
-if typing.TYPE_CHECKING:
-    from .UIComponents  import UIComponent
 
-import pygame
+if typing.TYPE_CHECKING:
+    from UserInterface.Components.UIComponents  import UIComponent
 
 class ActiveComponentRegistry:
     def __init__(self):
@@ -37,6 +36,7 @@ class UIRoot:
     def draw(self, surface) -> None:
         for comp in self._components:
             comp.draw(surface)
+        
 
     def handle_event(self, event) -> None:
         for comp in self._components:
