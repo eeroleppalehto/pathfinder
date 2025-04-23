@@ -198,7 +198,7 @@ class MazeApp:
 
         self.maze_model.current_step = new_step
         self.last_scrubbed_step = new_step
-        self.step_counter = new_step
+        self.step_counter = new_step + 1
         self.final_step_count = len(self.maze_model.steps)
 
         self.pause()
