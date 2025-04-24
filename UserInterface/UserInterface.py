@@ -3,7 +3,7 @@ import pygame
 from .Components.UIComponents import Button, Dropdown, Header, Slider, Panel
 from .Core.UIRoot import UIRoot
 from .Styles.StyleSheet import StyleSheet
-from .Styles.StyleFilters import brightness, contrast, saturation, tint
+from .Styles.StyleFilters import brightness, contrast, saturation, tint, hue_rotate
 from .Styles.StyleEnums import StyleType
 from .Core.StyleUtilities import apply_style_to_components
 
@@ -27,7 +27,7 @@ class UserInterface:
         self.draw_wall_button.background_color = (60, 60, 66)
         
         components = [self.draw_start_button, self.draw_end_button,  self.draw_empty_button, self.draw_wall_button]
-        hover_style = StyleSheet(filter = [saturation(2), brightness(0.8)])
+        hover_style = StyleSheet(filter = [brightness(0.8), saturation(2), hue_rotate(-10)])
         apply_style_to_components(StyleType.HOVER, hover_style, components)
     
     def _create_components(self):

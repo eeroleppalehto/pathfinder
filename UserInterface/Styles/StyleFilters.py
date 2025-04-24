@@ -1,11 +1,15 @@
 from enum import IntEnum, auto
 from typing import Optional
 
+TO_NORMALIZED_COLOR_VALUE = 1.0 / 255.0
+TO_NORMALIZED_HUE_VALUE = 1.0 / 60.0
+
 class FilterType(IntEnum):
     START      = auto()
     BRIGHTNESS = auto()
     CONTRAST   = auto()
     SATURATION = auto()
+    HUE        = auto()
     TINT       = auto()
     END        = auto()
 
@@ -14,7 +18,6 @@ class FilterToken:
     def __init__(self, filter_type: FilterType, value: float):
         self.type  = filter_type
         self.value = value
-
 
 def _apply_brightness_filter(color: tuple[int, int, int], filter_token: FilterToken) -> tuple[int, int, int]:
     if filter_token.type is not FilterType.BRIGHTNESS:
@@ -116,27 +119,81 @@ def _apply_tint_filter(
 
     return (min(255, max(0, new_red)), min(255, max(0, new_green)), min(255, max(0, new_blue)))
 
+def _apply_hue_filter(color: tuple[int, int, int], filter_token: FilterToken):
+    if filter_token.type is not FilterType.HUE:
+        raise ValueError("FilterToken must be of type HUE")
+
+    delta_hue = filter_token.value % 360
+
+    r = color[0] * TO_NORMALIZED_COLOR_VALUE
+    g = color[1] * TO_NORMALIZED_COLOR_VALUE
+    b = color[2] * TO_NORMALIZED_COLOR_VALUE
+
+
+    max_c = max(r, g, b)
+    min_c = min(r, g, b)
+    chroma = max_c - min_c
+    value = max_c
+    base  = value - chroma
+
+    if chroma == 0:
+        return color
+
+    if max_c == r:
+        orig_hue = (((g - b) / chroma) % 6) * 60
+    elif max_c == g:
+        orig_hue = (((b - r) / chroma) + 2) * 60
+    else:  # max_c == b
+        orig_hue = (((r - g) / chroma) + 4) * 60
+
+    new_hue = (orig_hue + delta_hue) % 360
+
+
+    sector = new_hue * TO_NORMALIZED_HUE_VALUE
+    second = chroma * (1 - abs((sector % 2) - 1))
+
+    if sector < 1:
+        pr, pg, pb = chroma, second, 0.0
+    elif sector < 2:
+        pr, pg, pb = second, chroma, 0.0
+    elif sector < 3:
+        pr, pg, pb = 0.0, chroma, second
+    elif sector < 4:
+        pr, pg, pb = 0.0, second, chroma
+    elif sector < 5:
+        pr, pg, pb = second, 0.0, chroma
+    else:
+        pr, pg, pb = chroma, 0.0, second
+
+    out_r = int(round((pr + base) * 255))
+    out_g = int(round((pg + base) * 255))
+    out_b = int(round((pb + base) * 255))
+
+    return (out_r, out_g, out_b)
 
 # --- wire up the filters ---
 filter_functions: list[Optional[callable]] = [None] * FilterType.END
 filter_functions[FilterType.BRIGHTNESS] = _apply_brightness_filter
 filter_functions[FilterType.CONTRAST]   = _apply_contrast_filter
 filter_functions[FilterType.SATURATION] = _apply_saturation_filter
+filter_functions[FilterType.HUE] = _apply_hue_filter
 filter_functions[FilterType.TINT] = _apply_tint_filter
 
 
-def brightness(value: float) -> FilterToken:
-    return FilterToken(FilterType.BRIGHTNESS, value)
+def brightness(brightness_amount: float) -> FilterToken:
+    return FilterToken(FilterType.BRIGHTNESS, brightness_amount)
 
-def contrast(value: float) -> FilterToken:
-    return FilterToken(FilterType.CONTRAST, value)
+def contrast(constrast_amount: float) -> FilterToken:
+    return FilterToken(FilterType.CONTRAST, constrast_amount)
 
-def saturation(value: float) -> FilterToken:
-    return FilterToken(FilterType.SATURATION, value)
+def saturation(saturation_amount: float) -> FilterToken:
+    return FilterToken(FilterType.SATURATION, saturation_amount)
+
+def hue_rotate(hue_in_degrees: float) -> FilterToken:
+    return FilterToken(FilterType.HUE, hue_in_degrees)
 
 def tint(tint_color: tuple[int, int, int], tint_amount: float) -> FilterToken:
     return FilterToken(FilterType.TINT, (tint_color, tint_amount))
-
 
 def apply_filter(color: Optional[tuple[int, int, int]], filter_token: FilterToken) -> Optional[tuple[int, int, int]]:
     if (
