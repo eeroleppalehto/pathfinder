@@ -169,6 +169,7 @@ class MazeDrawing:
 
     def reset_steps(self):
         self.maze_model.current_step = -1
+        self.maze_model.last_step = -1
         if self.maze_model.steps:
             self.maze_model.reset_maze_to_original()
             self.maze_renderer.update_maze_surface()
