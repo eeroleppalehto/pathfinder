@@ -1,12 +1,25 @@
+
+from __future__ import annotations
+from typing import TYPE_CHECKING
 import pygame
+import copy
+if TYPE_CHECKING:
+    from MazeRenderer import MazeRenderer
+    from UserInterface.Cursor import Cursor
 
 class MazeDrawing:
-    def __init__(self, maze_renderer, cursor):
+    """
+    Handles mouse events to draw on the maze and pushes incremental updates
+    to the renderer's overlay, avoiding full surface redraws.
+    """
+    def __init__(self, maze_renderer: MazeRenderer, cursor: Cursor):
         self.maze_renderer = maze_renderer
         self.maze_model = maze_renderer.maze_model
         self.cursor = cursor
+        self.needs_initialization = False
+
         self.draw_actions = {
-            "disabled": lambda row, col : None,
+            "disabled": lambda r, c: None,
             "draw_walls": self.draw_wall,
             "remove_walls": self.remove_wall,
             "place_start": self.place_start,
@@ -14,91 +27,150 @@ class MazeDrawing:
         }
         self.current_draw_state = "disabled"
         self.current_draw_action = self.draw_actions["disabled"]
-        
-    def handle_event(self, event: pygame.event):
-        """
-        Handles mouse events to draw walls on the maze.
-        """
-        if event.type not in (pygame.MOUSEBUTTONDOWN, pygame.MOUSEMOTION):
-            return
-        mouse_x, mouse_y = self.mouse_position(event)
 
-        # Check if the mouse is within the maze bounds.
-        if not self.is_on_canvas(mouse_x, mouse_y):
-            self.cursor.set_default_cursor()
-            return
-        
-        # Determine the cell coordinates.
-        col = mouse_x // self.maze_renderer.cell_size
-        row = mouse_y // self.maze_renderer.cell_size
+        # Last cell drawn during a drag, to make continuous lines
+        self._prev_cell: tuple[int, int] | None = None
 
-        # Handle mouse button down or motion while holding the button.
-        if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.MOUSEMOTION and event.buttons[0]):
-            # Toggle the wall state for the hovered cell.
-            self.current_draw_action(row, col)
-        if self.current_draw_state != "disabled":
-            self.cursor.set_cross_cursor()
-    def is_on_canvas(self, x, y):
+    
+    def is_on_canvas(self, x, y) -> bool:
         if 0 <= x < self.maze_renderer.surface_width and 0 <= y < self.maze_renderer.surface_height:
             return True
         return False
 
-    def mouse_position(self, event: pygame.event):
-        # Get the mouse position relative to the maze.
+    def mouse_position(self, event: pygame.event) -> tuple[int, int]:
         x, y = event.pos
-        # Adjust for the maze offset.
         maze_x = x - self.maze_renderer.offset_x
         maze_y = y - self.maze_renderer.offset_y
         return maze_x, maze_y
 
-    def draw_wall(self, row, col):
-        """
-        Toggles the state of a cell between a wall (1) and a path (0).
-        """
-        # Ensure the cell is within bounds and not a start ('S') or end ('E') cell.
-        if self.maze_model.original_maze[row][col] not in ('S', 'E'):
-            # Toggle between wall (1) and path (0).
-            self.maze_model.original_maze[row][col] = 1
-            self.maze_model.current_maze[row][col] = 1
-            # Redraw the background to reflect the change.
-            self.reset_steps()
-            self.maze_renderer.initialize_background()
-    
-    def remove_wall(self, row, col):
-        """
-        Toggles the state of a cell between a wall (1) and a path (0).
-        """
-        # Ensure the cell is within bounds and not a start ('S') or end ('E') cell.
-        if self.maze_model.original_maze[row][col] not in ('S', 'E'):
-            # Toggle between wall (1) and path (0).
-            #self.maze_model.original_maze[row][col] = 1 if self.maze_model.original_maze[row][col] == 0 else 0
-            self.maze_model.original_maze[row][col] = 0
-            self.maze_model.current_maze[row][col] = 0
-            # Redraw the background to reflect the change.
-            self.reset_steps()
-            self.maze_renderer.initialize_background()
 
-    def place_start(self, row, col):
-        # Remove old start from maze
-        self.maze_model.original_maze[self.maze_model.start[0]][self.maze_model.start[1]] = 0
+    def handle_event(self, event: pygame.event):
+        if event.type not in (pygame.MOUSEBUTTONDOWN,
+                              pygame.MOUSEBUTTONUP,
+                              pygame.MOUSEMOTION):
+            return
 
-        # Update new start
-        self.maze_model.original_maze[row][col] = "S"
+        mx, my = self.mouse_position(event)
+        if not self.is_on_canvas(mx, my):
+            self.cursor.set_default_cursor()
+            if event.type == pygame.MOUSEBUTTONUP:
+                self._prev_cell = None
+            return
+
+        col = mx // self.maze_renderer.cell_size
+        row = my // self.maze_renderer.cell_size
+
+
+        if event.type == pygame.MOUSEBUTTONUP:
+            self._prev_cell = None
+            self.reset_steps()
+            self.maze_renderer.update_maze_surface()
+     
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            new_val = self.current_draw_action(row, col)
+            if new_val is not None:
+                self.needs_initialization = True
+                self.maze_renderer.incremental_update_overlay([(row, col, new_val)])
+
+            if self.current_draw_state in ("draw_walls", "remove_walls"):
+                self._prev_cell = (row, col)
+                
+        elif event.type == pygame.MOUSEMOTION and event.buttons[0]:
+            if self.current_draw_state not in ("draw_walls", "remove_walls"):
+                return
+            current = (row, col)
+            if self._prev_cell is None:
+                self._prev_cell = current
+
+            changes: list[tuple[int, int, int]] = []
+            line = self.draw_line(self._prev_cell, current)
+
+            for r, c in line:
+                new_val = self.current_draw_action(r, c)
+                if new_val is not None:
+                    changes.append((r, c, new_val))
+                    
+            if changes:
+                self.maze_renderer.incremental_update_overlay(changes)
+            self._prev_cell = current
+
+        if self.current_draw_state != "disabled":
+            self.cursor.set_cross_cursor()
+
+    def draw_line(self, start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
+        # (same Bresenham list-based implementation as before)
+        start_row, start_col = start
+        end_row, end_col = end
+        delta_row = abs(end_row - start_row)
+        delta_col = abs(end_col - start_col)
+        step_row = 1 if end_row >= start_row else -1
+        step_col = 1 if end_col >= start_col else -1
+        cells: list[tuple[int, int]] = []
+        row, col = start_row, start_col
+        if delta_col > delta_row:
+            err = delta_col // 2
+            for _ in range(delta_col + 1):
+                cells.append((row, col))
+                col += step_col
+                err -= delta_row
+                if err < 0:
+                    row += step_row
+                    err += delta_col
+        else:
+            err = delta_row // 2
+            for _ in range(delta_row + 1):
+                cells.append((row, col))
+                row += step_row
+                err -= delta_col
+                if err < 0:
+                    col += step_col
+                    err += delta_row
+        return cells
+
+    def draw_wall(self, row: int, col: int) -> int | None:
+        if self.maze_model.maze[row][col] in ('S', 'E'):
+            return None
+        self.maze_model.maze[row][col] = 1
+        # self.maze_model.current_maze[row][col] = 1
+        self.reset_steps()
+        return 1
+
+    def remove_wall(self, row: int, col: int) -> int | None:
+        if self.maze_model.maze[row][col] in ('S', 'E'):
+            return None
+        self.maze_model.maze[row][col] = 0
+        self.reset_steps()
+        return 0
+
+    def place_start(self, row: int, col: int) -> int | None:
+        old_r, old_c = self.maze_model.start
+        if (row, col) == (old_r, old_c):
+            return None
+        # clear old start cell
+        self.maze_model.maze[old_r][old_c] = 0
+
+        # set new start
+        self.maze_model.maze[row][col] = 'S'
         self.maze_model.start = (row, col)
         self.reset_steps()
-        self.maze_renderer.initialize_background()
+        
+        return 'S'
 
-    def place_end(self, row, col):
-        # Remove old start from maze
-        self.maze_model.original_maze[self.maze_model.end[0]][self.maze_model.end[1]] = 0
+    def place_end(self, row: int, col: int) -> int | None:
+        old_r, old_c = self.maze_model.end
+        if (row, col) == (old_r, old_c):
+            return None
+        self.maze_model.maze[old_r][old_c] = 0
 
-        # Update new start
-        self.maze_model.original_maze[row][col] = "E"
+        self.maze_model.maze[row][col] = 'E'
         self.maze_model.end = (row, col)
         self.reset_steps()
-        self.maze_renderer.initialize_background()
-
+        return 'E'
 
     def reset_steps(self):
-        if len(self.maze_model.steps) != 0:
-            self.maze_model.steps = []
+        self.maze_model.current_step = -1
+        self.maze_model.last_step = -1
+        if self.maze_model.steps:
+            self.maze_model.reset_maze_to_original()
+            self.maze_renderer.update_maze_surface()
+            self.maze_model.steps.clear()

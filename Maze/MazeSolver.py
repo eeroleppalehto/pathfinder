@@ -4,7 +4,15 @@ from Algorithms.DepthFirstSearch import dfs_steps
 from Algorithms.Dijkstra import dijkstra_steps
 
 class MazeSolver:
+    """
+    A class to solve mazes using different algorithms.
+    """
     def __init__(self, algorithm="BFS"):
+        """
+        Initializes the MazeSolver with a specified algorithm.
+        Args:
+            algorithm (str, optional): The algorithm to use for solving the maze. Defaults to "BFS".
+        """
         self.algorithm = algorithm
         self.algorithms = {
             "BFS": bfs_steps,

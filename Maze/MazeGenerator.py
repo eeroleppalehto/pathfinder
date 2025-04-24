@@ -1,6 +1,13 @@
 import random
 
 class MazeGenerator:
+    """
+    This class cointains methods for generating mazes that are matrices where 
+        walls are represented as 1,
+        empty spaces by 0,
+        start cell by 'S',
+        and end cell by 'E'.
+    """
     def __init__(self):
         self.rows = 0
         self.cols = 0
@@ -21,7 +28,19 @@ class MazeGenerator:
             self.seed += 1
             return self.generate_random(num_cols, num_rows, self.seed)
     
-    def generate_random(self, num_cols, num_rows, seed=None):
+    def generate_random(self, num_cols: int, num_rows: int, seed: int | float | str | bytes | bytearray | None = None):
+        """
+        This method generates a randomized maze
+        where start is placed top left and end to bottom right.
+        
+        Args:
+            width (int): width of the generated maze
+            height (int): height of the generated maze
+            seed (int | float | str | bytes | bytearray | None): Variable to initialize seed. Defaults to None.
+
+        Returns:
+            maze: generated matrix
+        """
         # Seed the random number generator for reproducibility.
         if seed is not None:
             random.seed(seed)
@@ -70,6 +89,17 @@ class MazeGenerator:
         return maze
 
     def generate_empty_maze(self, width, height):
+        """
+        This method generates a empty maze where the outer cells are walls
+        and start is placed topleft and end to bottomright
+        
+        Args:
+            width (int): width of the generated maze
+            height (int): height of the generated maze
+
+        Returns:
+            maze: generated matrix
+        """
         maze: list[list[int]] = []
 
         for i in range(width):
@@ -89,19 +119,3 @@ class MazeGenerator:
         maze[width-2][height-2] = "E"
 
         return maze
-
-    def generate2(self, rows, cols, seed=0, obstacle_chance=0.1):
-        grid = [[0 for _ in range(cols)] for _ in range(rows)]
-
-        for r in range(rows):
-            for c in range(cols):
-                if random.random() < obstacle_chance:
-                    grid[r][c] = 1  # obstacle
-
-        # Make sure start/goal are walkable
-        grid[1][1] = 0
-        grid[rows - 2][cols - 2] = 0
-
-        grid[0][0] = 'S'
-        grid[rows - 1][cols - 1] = 'E'
-        return grid
