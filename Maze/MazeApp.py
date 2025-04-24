@@ -99,10 +99,11 @@ class MazeApp:
                 if steps_to_apply > 0:
                     self.accumulated_time -= steps_to_apply * time_per_step
                     self.step_counter += steps_to_apply
-                    self._apply_steps_in_range(
-                        start=self.maze_model.current_step + 1,
-                        end=self.maze_model.current_step + steps_to_apply
-                    )
+
+                    range_start = self.maze_model.current_step + 1
+                    range_end = self.maze_model.current_step + steps_to_apply
+                    self._apply_steps_in_range(range_start, range_end)
+                    
                     self.maze_model.current_step += steps_to_apply
                 else:
                     self.final_step_count = len(self.maze_model.steps)

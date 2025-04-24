@@ -73,9 +73,6 @@ class UIComponent(InlineStyle):
     def get_size(self):
         return self._size
     
-    def get_computed_style(self):
-        return self.style_manager.get_computed_style()
-    
     def set_size(self, width, height):
         self._size = (width, height)
 
@@ -127,7 +124,7 @@ class UIComponent(InlineStyle):
             child.handle_event(event)
 
     def handle_event(self, event):
-        self.propagate_event(event)
+        self.propagate_event(event) 
         return False
     
     def activate(self):
@@ -201,7 +198,7 @@ class Header(UIComponent):
         self._cached_surf = None
         self.needs_update = True
         self.update_size()
-        
+
     @property
     def text(self) -> str:
         return self._text
@@ -326,6 +323,13 @@ class Button(UIComponent):
         rect = self.get_rect()
         bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         pygame.draw.rect(surface, bg_color, rect)
+
+
+        border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
+        if border_size and border_size > 0:
+            border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered, True)
+            if(border_color):
+                pygame.draw.rect(surface, border_color, rect, border_size)
 
         if self._text:
             text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered, True)

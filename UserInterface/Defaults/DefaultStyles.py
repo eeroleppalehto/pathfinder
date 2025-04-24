@@ -30,7 +30,7 @@ BUTTON_STYLE = StyleSheet(
     text_color=(255, 255, 255),
     font_size=20,
     border_color=(0, 105, 200),
-    border_size=3,
+    border_size=0,
     thumb_color=(0, 105, 200),
     filter = None
 )
@@ -42,9 +42,9 @@ BUTTON_HOVER_STYLE = StyleSheet(
     font_family=None,
     font_size=None,
     border_color=None,
-    border_size=None,
-    thumb_color=None,
-    filter = [FilterToken(FilterType.BRIGHTNESS, 1.25), FilterToken(FilterType.SATURATION, 2)]
+    border_size=3,
+    thumb_color=(0, 90, 185),
+    filter = [FilterToken(FilterType.BRIGHTNESS, 1.20), FilterToken(FilterType.SATURATION, 2)]
 )
 
 HEADER_STYLE = StyleSheet(
