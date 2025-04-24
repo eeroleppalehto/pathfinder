@@ -14,8 +14,6 @@ class UserInterface:
         self.control_panel_x = panel_x
         self.control_panel_width = panel_width
         self.screen_height = screen_height
-   
-
         self._create_components()
         self._update_component_styles()
 
@@ -24,17 +22,13 @@ class UserInterface:
         self.draw_end_button.background_color = (244, 67, 54)
         self.draw_empty_button.background_color = (200, 220, 240)  # very light blue
         self.draw_wall_button.background_color = (60, 60, 66)
-        
         components = [self.draw_start_button, self.draw_end_button,  self.draw_empty_button, self.draw_wall_button]
         hover_style = StyleSheet(
-            border_size = 2,
-            border_color = (255, 0, 0),
-            filter = [brightness(0.8), saturation(2), hue_rotate(-10)]
+            filter = [brightness(0.75), saturation(2), hue_rotate(-10)]
         )
 
-
         apply_style_to_components(StyleType.HOVER, hover_style, components)
-    
+
     def _create_components(self):
         self.root = UIRoot()
         self.control_panel = Panel((self.control_panel_x, 0), (self.control_panel_width, self.screen_height))
@@ -48,10 +42,8 @@ class UserInterface:
         self.generate_empty_button = Button((20, 520), (100, 30), "Empty", self.app.generate_empty_maze)
         self.generate_maze_button = Button((130, 520), (100, 30), "Random", self.app.generate_random_maze)
         self.timeline_slider = Slider((20, 305), (200, 15), (10, 20), 0, 0, 0, self.app.on_timeline_changed)
-        self.speed_header = Header((20, 55), f"Speed: {self.speed_slider.value:.1f}x")
-        self.timeline_header = Header((20, 275), "Timeline")
-
-
+        self.speed_header = Header((20, 58), f"Speed: {self.speed_slider.value:.1f}x")
+        self.timeline_header = Header((20, 280), "Timeline")
         self.steps_header = Header((20, 340), "Steps")
 
         self.step_counter_header = Header((30, 370), f"Total: {self.app.step_counter}")
