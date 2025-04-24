@@ -1,4 +1,3 @@
-
 from __future__ import annotations
 import typing
 
@@ -22,6 +21,11 @@ DEFAULT = _Default()
 
 
 class StyleSheet:
+    """
+    Represents a collection of style properties for UI components.
+    Allows customization of colors, fonts, borders, and filters.
+    Provides methods to update and manage style properties dynamically.
+    """
     def __init__(
         self,
         background_color: Optional[tuple[int, int, int]] = DEFAULT,
@@ -58,22 +62,33 @@ class StyleSheet:
             family = None if self._font_family is DEFAULT else self._font_family
             self._font = pygame.font.Font(family, self._font_size)
 
-    def computed_styles_exist(self):
-        return self._filter != None
+    
     
     def update_style_property(self, stylesheet, style_property: StyleProperty, value: tuple[int, int, int]):
+        """
+        Updates a specific style property for all objects using this stylesheet.
+        Notifies the associated style manager of the change.
+        """
         for object in self._objects_using_this_style:
             style_manager: ComponentStyleManager = object.style_manager
             style_manager.update_computed_style(stylesheet, style_property, value)
 
     def add_to_object_references(self, object):
+        """
+        Adds a reference to an object that uses this stylesheet.
+        """
         if object not in self._objects_using_this_style:
             self._objects_using_this_style.append(object)
 
     def remove_from_object_refereces(self, object):
+        """
+        Removes a reference to an object that uses this stylesheet.
+        """
         if object in self._objects_using_this_style:
             self._objects_using_this_style.remove(object)
 
+    def computed_styles_exist(self):
+        return self._filter != None
      # —— filter property —— #
     @property
     def filter(self) -> list[FilterToken] | None:
@@ -81,6 +96,10 @@ class StyleSheet:
     
     @filter.setter
     def filter(self, filter_token: Optional[Union[list[FilterToken], FilterToken]] = DEFAULT):
+        """
+        Sets the filter property. If a single filter token is provided, wraps it in a list.
+        Triggers a recomputation of colors based on the new filter.
+        """
         if filter_token == None or filter_token == DEFAULT:
             return
         
@@ -171,6 +190,10 @@ class StyleSheet:
         return self._font
 
 class StyleGroup:
+    """
+    Represents a group of styles for different states of a UI component.
+    Typically includes styles for normal and hover states.
+    """
     def __init__(self, normal: StyleSheet, hover: StyleSheet):
         self.normal = normal
         self.hover = hover

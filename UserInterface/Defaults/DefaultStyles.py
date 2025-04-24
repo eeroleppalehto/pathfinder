@@ -124,16 +124,24 @@ IMAGE_STYLE = StyleSheet(
 IMAGE_HOVER_STYLE = DEFAULT_HOVER_STYLE
 
 class DefaultStyles:
-    Default  = StyleGroup(DEFAULT_STYLE,     DEFAULT_HOVER_STYLE)
-    Image    = StyleGroup(IMAGE_STYLE, IMAGE_HOVER_STYLE)
-    Button   = StyleGroup(BUTTON_STYLE,      BUTTON_HOVER_STYLE)
-    Header   = StyleGroup(HEADER_STYLE,      HEADER_HOVER_STYLE)
-    Dropdown = StyleGroup(DROPDOWN_STYLE,    DROPDOWN_HOVER_STYLE)
-    Slider   = StyleGroup(SLIDER_STYLE,      SLIDER_HOVER_STYLE)
-    Panel    = StyleGroup(PANEL_STYLE,       PANEL_HOVER_STYLE)
+    """
+    Provides default and hover styles for various UI components.
+    Includes methods to retrieve styles by component name.
+    """
+    Default  = StyleGroup(DEFAULT_STYLE,     DEFAULT_HOVER_STYLE)  # Default style group
+    Image    = StyleGroup(IMAGE_STYLE, IMAGE_HOVER_STYLE)          # Style group for images
+    Button   = StyleGroup(BUTTON_STYLE,      BUTTON_HOVER_STYLE)   # Style group for buttons
+    Header   = StyleGroup(HEADER_STYLE,      HEADER_HOVER_STYLE)   # Style group for headers
+    Dropdown = StyleGroup(DROPDOWN_STYLE,    DROPDOWN_HOVER_STYLE) # Style group for dropdowns
+    Slider   = StyleGroup(SLIDER_STYLE,      SLIDER_HOVER_STYLE)   # Style group for sliders
+    Panel    = StyleGroup(PANEL_STYLE,       PANEL_HOVER_STYLE)    # Style group for panels
     
     @staticmethod
     def get_by_component_name(component_name: str = "DEFAULT") -> StyleGroup:
+        """
+        Retrieves the style group for a given component name.
+        Defaults to the general Default style group if no match is found.
+        """
         if component_name == "BUTTON":
             return DefaultStyles.Button
         if component_name == "HEADER":
