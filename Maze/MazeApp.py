@@ -75,13 +75,16 @@ class MazeApp:
                     len(self.maze_model.steps) - self.maze_model.current_step - 1,
                     100
                 )
-
                 if steps_to_process > 0:
                     self.step_counter += steps_to_process
                     self.accumulated_time -= steps_to_process * time_per_step
-                    self.maze_model.current_step += steps_to_process
-                    self.maze_model.display_step(self.maze_model.current_step)
-                    self.maze_renderer.update_overlay()
+                    for i in range(steps_to_process):
+                        self.maze_model.current_step += 1
+                        self.maze_model.display_step(self.maze_model.current_step)
+
+                        next_step = self.maze_model.steps[self.maze_model.current_step]
+                        for (x, y, value) in next_step:
+                            self.maze_renderer.update_maze_surface_cell(x, y, value)
                 elif steps_to_process == 0:
                     self.final_step_count = len(self.maze_model.steps[len(self.maze_model.steps)-1])
 
@@ -108,7 +111,6 @@ class MazeApp:
         if not self.maze_model.steps:
             algorithm_name = self.UserInterface.dropdown.options[self.UserInterface.dropdown.selected]
             self.maze_model.run_algorithm(self.solver_factory, algorithm_name)
-            self.maze_renderer.update_overlay()
 
         if not self.is_playing:
             self.is_playing = True
@@ -124,22 +126,26 @@ class MazeApp:
         self.step_counter = 0
         self.maze_model.steps = []
         self.UserInterface.reset_timeline()
-        self.maze_model.current_maze = copy.deepcopy(self.maze_model.original_maze)
-        self.maze_renderer.initialize_background()
+        self.maze_model.reset_maze_to_original()
+        self.maze_renderer.update_maze_surface()
 
     def next_step(self):
         self.pause()
         self.step_counter += 1
         if self.maze_model.current_step < len(self.maze_model.steps) - 1:
             self.maze_model.display_step(self.maze_model.current_step + 1)
-            self.maze_renderer.update_overlay()
+            next_step = self.maze_model.steps[self.maze_model.current_step]
+            for (x, y, value) in next_step:
+                self.maze_renderer.update_maze_surface_cell(x, y, value)
 
     def prev_step(self):
         self.pause()
         self.step_counter -= 1
-        if self.maze_model.current_step > 0:
+        if self.maze_model.current_step >= 0:
+            next_step = self.maze_model.steps[self.maze_model.current_step]
+            for (x, y, _) in next_step:
+                self.maze_renderer.update_maze_surface_cell(x, y, 0)
             self.maze_model.display_step(self.maze_model.current_step - 1)
-            self.maze_renderer.update_overlay()
 
     def on_speed_changed(self, value: float):
         self.speed = value
@@ -156,18 +162,18 @@ class MazeApp:
         new_step = max(0, min(new_step, len(self.maze_model.steps) - 1))
         self.step_counter = new_step
         self.maze_model.display_step(new_step)
-        self.maze_renderer.update_overlay()
+        self.maze_renderer.update_maze_surface()
         self.pause()
 
     def generate_random_maze(self):
         self.maze_model.maze_generator.state = "random"
         self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
-        self.maze_renderer.initialize_background()
+        self.maze_renderer.update_maze_surface()
 
     def generate_empty_maze(self):
         self.maze_model.maze_generator.state = "empty"
         self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
-        self.maze_renderer.initialize_background()
+        self.maze_renderer.update_maze_surface()
 
     def set_draw_walls(self):
         self.drawing_state = "draw_walls"

@@ -47,45 +47,66 @@ class MazeRenderer:
         self.offset_y = (self.canvas_height - self.surface_height) // 2
 
         # Create surfaces for the background and the overlay.
-        self.background_surface = pygame.Surface((self.surface_width, self.surface_height))
+        # self.background_surface = pygame.Surface((self.surface_width, self.surface_height))
         # Use SRCALPHA to allow for overlay transparency.
-        self.overlay_surface = pygame.Surface((self.surface_width, self.surface_height), pygame.SRCALPHA)
-        self.overlay_surface = self.overlay_surface.convert_alpha()
+        # self.overlay_surface = pygame.Surface((self.surface_width, self.surface_height), pygame.SRCALPHA)
+        # self.overlay_surface = self.overlay_surface.convert_alpha()
 
-        self.initialize_background()
+        self.maze_surface = pygame.Surface((self.surface_width, self.surface_height))
+        self.update_maze_surface()
+        # self.initialize_background()
 
-    def initialize_background(self):
-        """Initializes the background surface with the maze's original state."""
-        # Fill the background with the color for a path.
-        self.background_surface.fill(self.color_scheme.get(0, (255, 255, 255)))
+    # def initialize_background(self):
+    #     """Initializes the background surface with the maze's original state."""
+    #     # Fill the background with the color for a path.
+    #     self.background_surface.fill(self.color_scheme.get(0, (255, 255, 255)))
+    #     for i in range(self.maze_model.rows):
+    #         for j in range(self.maze_model.cols):
+    #             cell = self.maze_model.original_maze[i][j]
+    #             # For walls and the special start/end cells, draw the colored block.
+    #             if cell in (1, 'S', 'E'):
+    #                 rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
+    #                                    self.cell_size, self.cell_size)
+    #                 color = self.color_scheme.get(cell, (255, 255, 255))
+    #                 pygame.draw.rect(self.background_surface, color, rect)
+    #     # Initially clear the overlay.
+    #     self.overlay_surface.fill((0, 0, 0, 0))
+
+    def update_maze_surface(self):
+        self.maze_surface.fill((0, 0, 0))  # Clear the maze surface
         for i in range(self.maze_model.rows):
             for j in range(self.maze_model.cols):
-                cell = self.maze_model.original_maze[i][j]
-                # For walls and the special start/end cells, draw the colored block.
-                if cell in (1, 'S', 'E'):
-                    rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
-                                       self.cell_size, self.cell_size)
-                    color = self.color_scheme.get(cell, (255, 255, 255))
-                    pygame.draw.rect(self.background_surface, color, rect)
-        # Initially clear the overlay.
-        self.overlay_surface.fill((0, 0, 0, 0))
+                cell = self.maze_model.maze[i][j]
+                if cell == 1:
+                    continue
+                rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
+                                    self.cell_size, self.cell_size)
+                color = self.color_scheme.get(cell, (255, 255, 255))
+                pygame.draw.rect(self.maze_surface, color, rect)
+    
+    def update_maze_surface_cell(self, i: int, j: int, value):
+        rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
+                            self.cell_size, self.cell_size)
+        color = self.color_scheme.get(value, (255, 255, 255))
+        pygame.draw.rect(self.maze_surface, color, rect)
 
-    def update_overlay(self):
-        """Updates the overlay surface to reflect the current state of the maze."""
-        self.overlay_surface.fill((0, 0, 0, 0))
-        for i in range(self.maze_model.rows):
-            for j in range(self.maze_model.cols):
-                original = self.maze_model.original_maze[i][j]
-                current = self.maze_model.current_maze[i][j]
-                # Draw only if there is a difference between the original and the current cell.
-                if current != original:
-                    rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
-                                       self.cell_size, self.cell_size)
-                    color = self.color_scheme.get(current, (0, 0, 0, 0))
-                    pygame.draw.rect(self.overlay_surface, color, rect)
+    # def update_overlay(self):
+    #     """Updates the overlay surface to reflect the current state of the maze."""
+    #     self.overlay_surface.fill((0, 0, 0, 0))
+    #     for i in range(self.maze_model.rows):
+    #         for j in range(self.maze_model.cols):
+    #             original = self.maze_model.original_maze[i][j]
+    #             current = self.maze_model.current_maze[i][j]
+    #             # Draw only if there is a difference between the original and the current cell.
+    #             if current != original:
+    #                 rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
+    #                                    self.cell_size, self.cell_size)
+    #                 color = self.color_scheme.get(current, (0, 0, 0, 0))
+    #                 pygame.draw.rect(self.overlay_surface, color, rect)
 
     def draw(self, surface: pygame.Surface):
         """Draws the maze on the given surface, including the background and overlay."""
         # Blit both the background and overlay surfaces using the computed offsets.
-        surface.blit(self.background_surface, (self.offset_x, self.offset_y))
-        surface.blit(self.overlay_surface, (self.offset_x, self.offset_y))
+        # surface.blit(self.background_surface, (self.offset_x, self.offset_y))
+        # surface.blit(self.overlay_surface, (self.offset_x, self.offset_y))
+        surface.blit(self.maze_surface, (self.offset_x, self.offset_y))
