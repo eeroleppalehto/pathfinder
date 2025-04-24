@@ -53,14 +53,7 @@ class MazeApp:
         self.maze_model = MazeModel(self.maze_generator, SIZE_OF_MAZE, SIZE_OF_MAZE)
         self.maze_renderer = MazeRenderer(self.maze_model, self.canvas_width, self.canvas_height)
         self.maze_drawing = MazeDrawing(self.maze_renderer, self.cursor)
-        self.UserInterface = UserInterface(
-            self,
-            self.canvas_width,
-            self.control_panel_width,
-            screen_height,
-            self.speed,
-            self.max_speed
-        )
+        self.UserInterface = UserInterface(self,self.canvas_width, self.control_panel_width, screen_height)
 
         self.is_playing = False
         self.drawing_state = "disabled"
@@ -96,11 +89,11 @@ class MazeApp:
             if self.is_playing and self.maze_model.steps:
                 self.accumulated_time += delta_time
                 time_per_step = time_per_cell_at_1x / self.speed
-
+                
                 steps_to_apply = min(
                     int(self.accumulated_time / time_per_step),
                     len(self.maze_model.steps) - self.maze_model.current_step - 1,
-                    100  # avoid freezing if speed is very high
+                    100 
                 )
 
                 if steps_to_apply > 0:
@@ -255,7 +248,7 @@ class MazeApp:
         VALID_STATES = ["draw_walls", "remove_walls", "place_start", "place_end"]
         needs_reset = self.maze_model.current_step != -1
         if needs_reset:
-            self.stop()
+            self.stop() 
         if draw_state in VALID_STATES :
             self.drawing_state = draw_state
             self.maze_drawing.current_draw_state = self.drawing_state

@@ -9,13 +9,12 @@ from .Core.StyleUtilities import apply_style_to_components
 
 
 class UserInterface:
-    def __init__(self, app, panel_x, panel_width, screen_height, default_speed, max_speed):
+    def __init__(self, app, panel_x, panel_width, screen_height):
         self.app = app
         self.control_panel_x = panel_x
         self.control_panel_width = panel_width
         self.screen_height = screen_height
-        self.default_speed = default_speed
-        self.max_speed = max_speed
+   
 
         self._create_components()
         self._update_component_styles()
@@ -34,7 +33,7 @@ class UserInterface:
         self.root = UIRoot()
         self.control_panel = Panel((self.control_panel_x, 0), (self.control_panel_width, self.screen_height))
         self.dropdown = Dropdown((20, 20), (200, 30), ["BFS", "DFS", "Dijkstra", "A*"], 0, self.app.on_algorithm_changed)
-        self.speed_slider = Slider((20, 85), (200, 15), (10, 20), 0.1, self.max_speed, self.default_speed, self.app.on_speed_changed)
+        self.speed_slider = Slider((20, 85), (200, 15), (10, 20), 0.1, self.app.max_speed, self.app.speed, self.app.on_speed_changed)
         self.play_button = Button((20, 160), (100, 30), "Play", self.app.play)
         self.pause_button = Button((130, 160), (100, 30), "Pause", self.app.pause)
         self.stop_button = Button((20, 200), (100, 30), "Stop", self.app.stop)
