@@ -13,7 +13,7 @@ class StyleProperty(enum.IntFlag):
     FONT_SIZE = 16
     BORDER_COLOR = 32
     BORDER_SIZE = 64
-    SLIDER_THUMB_COLOR = 128
+    THUMB_COLOR = 128
     TEXT_ALIGN = 256
     FILTER = 512
     END = 1024

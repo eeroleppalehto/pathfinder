@@ -11,7 +11,7 @@ from .StyleEnums import StyleProperty
 if typing.TYPE_CHECKING:
     from .StyleManager import ComponentStyleManager
 
-pygame.init()
+
 pygame.font.init()
 
 class _Default:
@@ -49,8 +49,8 @@ class StyleSheet:
         self._foreground_color = foreground_color
         self._text_color = text_color
         self._border_color = border_color
+        self._thumb_color = thumb_color
         self.border_size = border_size
-        self.slider_thumb_color = thumb_color
         self.text_align = text_align
         self._objects_using_this_style = []
         
@@ -101,7 +101,16 @@ class StyleSheet:
         self._background_color = value
         self.update_style_property(self, StyleProperty.BACKGROUND_COLOR, value)
 
-   
+    # —— thumb_color property —— #
+    @property
+    def thumb_color(self) -> Optional[tuple[int, int, int]]:
+        return self._thumb_color
+
+    @thumb_color.setter
+    def thumb_color(self, value: Optional[tuple[int,int,int]]):
+        self._thumb_color = value
+        self.update_style_property(self, StyleProperty.THUMB_COLOR, value)
+        
     # —— foreground_color property —— #
     @property
     def foreground_color(self) -> Optional[tuple[int, int, int]]:

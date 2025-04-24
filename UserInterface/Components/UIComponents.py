@@ -562,13 +562,12 @@ class Slider(UIComponent):
     def draw(self, surface):
         rect = self.get_rect()
         thumb_rect = self._get_thumb_rect(rect)
-        thumb_hovered = thumb_rect.collidepoint(pygame.mouse.get_pos())
 
-        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
+        background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, False)
         foreground_color = self.get_style_property(StyleProperty.FOREGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
         border_color = self.get_style_property(StyleProperty.BORDER_COLOR, self.hovered, True)
-        thumb_color = self.get_style_property(StyleProperty.SLIDER_THUMB_COLOR, thumb_hovered)
+        thumb_color = self.get_style_property(StyleProperty.THUMB_COLOR, self.thumb_hovered, True)
 
         pygame.draw.rect(surface, background_color, rect)
         if border_size > 0:
@@ -586,10 +585,24 @@ class Slider(UIComponent):
         if event.type == MOUSEBUTTONDOWN:
             if rect.collidepoint(event.pos):
                 self.dragging = True
+                self.thumb_hovered = True
+                self.hovered = True
 
         elif event.type == MOUSEBUTTONUP:
             self.dragging = False
 
+
+        if event.type == MOUSEMOTION and self.dragging == False:
+            thumb_rect = self._get_thumb_rect(rect)
+            self.thumb_hovered = thumb_rect.collidepoint(event.pos)
+
+            if(self.thumb_hovered == False):
+                self.hovered = rect.collidepoint(event.pos)
+
+            else:
+                self.hovered = True
+                
+            
         if self.dragging:
             pos_x = event.pos[0]
             if pos_x:

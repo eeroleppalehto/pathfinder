@@ -31,7 +31,8 @@ class UserInterface:
             border_color = (255, 0, 0),
             filter = [brightness(0.8), saturation(2), hue_rotate(-10)]
         )
-        
+
+
         apply_style_to_components(StyleType.HOVER, hover_style, components)
     
     def _create_components(self):

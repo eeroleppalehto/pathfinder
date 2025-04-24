@@ -14,7 +14,7 @@ INHERITABLE_STYLE_PROPERTIES = (
     "font_size",
     "border_color",
     "border_size",
-    "slider_thumb_color",
+    "thumb_color",
     "text_align",
     "filter"
 )
@@ -24,6 +24,7 @@ COMPUTED_STYLE_PROPERTIES = (
     StyleProperty.FOREGROUND_COLOR,
     StyleProperty.TEXT_COLOR,
     StyleProperty.BORDER_COLOR,
+    StyleProperty.THUMB_COLOR
 )
 
 NUM_COMPUTED_STYLE_PROPERTIES = len(COMPUTED_STYLE_PROPERTIES) - 1
@@ -109,12 +110,13 @@ class InlineStyle:
         self.set_computed_style_property(StyleProperty.TEXT_COLOR, color)
 
     @property
-    def slider_thumb_color(self) -> Optional[tuple[int, int, int]]:
-        return self.get_style_property(StyleProperty.SLIDER_THUMB_COLOR, False)
+    def thumb_color(self) -> Optional[tuple[int, int, int]]:
+        return self.get_style_property(StyleProperty.THUMB_COLOR, False)
 
-    @slider_thumb_color.setter
+    @thumb_color.setter
     def slider_thumb_color(self, color: Optional[tuple[int, int, int]]):
-        self.set_style_property(StyleProperty.SLIDER_THUMB_COLOR, color)
+        self.set_style_property(StyleProperty.THUMB_COLOR, color)
+        self.set_computed_style_property(StyleProperty.THUMB_COLOR, color)
 
     @property
     def text_align(self) -> Optional[str]:

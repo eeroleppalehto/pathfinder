@@ -44,7 +44,9 @@ BUTTON_HOVER_STYLE = StyleSheet(
     border_color=None,
     border_size=3,
     thumb_color=(0, 90, 185),
-    filter = [FilterToken(FilterType.BRIGHTNESS, 1.20), FilterToken(FilterType.SATURATION, 2)]
+    filter = [
+        FilterToken(FilterType.BRIGHTNESS, 1.20), FilterToken(FilterType.SATURATION, 2)
+    ]
 )
 
 HEADER_STYLE = StyleSheet(
@@ -83,7 +85,17 @@ SLIDER_STYLE = StyleSheet(
     filter = None
 )
 
-SLIDER_HOVER_STYLE = DEFAULT_HOVER_STYLE
+SLIDER_HOVER_STYLE = StyleSheet(
+    background_color=None,
+    foreground_color=None,
+    text_color=None,
+    font_family=None,
+    font_size=None,
+    border_color=None,
+    border_size=None,
+    thumb_color=None,
+    filter = FilterToken(FilterType.BRIGHTNESS, 0.85)
+)
 
 PANEL_STYLE = StyleSheet(
     background_color=(250, 251, 253),
