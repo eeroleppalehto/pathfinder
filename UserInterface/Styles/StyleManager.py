@@ -53,6 +53,7 @@ class InlineStyle:
             token = [token]
 
         self.set_style_property(StyleProperty.FILTER, token)
+        self.style_manager.update_normal_computed_styles()
 
 
     @property
@@ -143,31 +144,32 @@ class ComponentStyleManager:
         for property in INHERITABLE_STYLE_PROPERTIES:
             val = getattr(style, property)
             if val is DEFAULT:
-                setattr(style, property, getattr(default_sheet, property))
+                default_value = getattr(default_sheet, property)
+                setattr(style, property, default_value)
+
 
         self.base_style_group = StyleGroup(style, self.base_style_group.hover)
-
-        if style._filter == None:
-            return
+        filter = self._inline_values[(StyleProperty.FILTER).get_index()]
         
+        if filter == None:
+            filter = style._filter
+            if(filter == None):
+                return
+    
         for property in COMPUTED_STYLE_PROPERTIES:
-            if(self._inline_mask & property):
-                continue
-
-
-            property_name = property.name.lower()
             idx = property.get_index()
+            value = self._inline_values[idx]
 
-            value = getattr(style, property_name)
             if(value == None):
-                value = self._inline_values[idx]
-                if value == None:
+                value = getattr(style, property.name.lower())
+                if(value == None):
                     continue
+            
+            computed_value = value
+            for token in filter:
+                computed_value = apply_filter(computed_value, token)
 
-            for token in style._filter:
-                value = apply_filter(value, token)
-
-            self._computed_normal_style_values[idx] = value
+            self._computed_normal_style_values[idx] = computed_value
 
 
       
@@ -186,9 +188,7 @@ class ComponentStyleManager:
 
         if style._filter == None:
             return
-        
-        print("style filter is not none!")
-        
+
         for property in COMPUTED_STYLE_PROPERTIES:
             property_name = property.name.lower()
             value = getattr(style, property_name)
@@ -196,8 +196,10 @@ class ComponentStyleManager:
 
             if(value == None):
                 value = self._inline_values[idx]
+
                 if value == None:
                     value = getattr(self.base_style_group.normal, property_name)
+
                     if(value == None):
                         continue
 
@@ -205,6 +207,34 @@ class ComponentStyleManager:
                 value = apply_filter(value, token)
 
             self._computed_hover_style_values[idx] = value
+
+    def update_normal_computed_styles(self):
+        FILTER_PROPERTY = StyleProperty.FILTER
+        filter = self._inline_values[FILTER_PROPERTY.get_index()]
+
+        if filter == None:
+            normal_style = self.base_style_group.normal
+            if(normal_style == None):
+                return
+            filter = normal_style.filter
+            if(filter == None):
+                return
+    
+
+        for property in COMPUTED_STYLE_PROPERTIES:
+            idx = property.get_index()
+            value = self._inline_values[idx]
+            if(value == None):
+                normal_style = self.base_style_group.normal
+                value = getattr(normal_style, property.name.lower())
+                if(value == None):
+                    continue
+            
+            for token in filter:
+                value = apply_filter(value, token)
+
+            idx = property.get_index()
+            self._computed_normal_style_values[idx] = value
 
     def normal_style_exists(self):
         return self.base_style_group != None and self.base_style_group.normal != None
@@ -226,26 +256,36 @@ class ComponentStyleManager:
         if prop is StyleProperty.NONE or value == None:
             return
         
-        
         if(prop not in COMPUTED_STYLE_PROPERTIES):
             return 
       
-        normal_filter = self.get_resolved_property(StyleProperty.FILTER)
+        normal_filter = self._inline_values[StyleProperty.FILTER.get_index()]
+        if(normal_filter == None):
+            normal_filter = self.base_style_group.normal._filter
+
+        
         if(normal_filter != None):
             computed_color = value
-            for computed_color in normal_filter:
-                computed_color = apply_filter(value, computed_color)
+            for token in normal_filter:
+                computed_color = apply_filter(computed_color, token)
                 
             idx = prop.get_index()
             self._computed_normal_style_values[idx] = computed_color
 
         hover_filter_exists = self.base_style_group.hover and self.base_style_group.hover._filter
-        if hover_filter_exists:
+        if (hover_filter_exists):
             hover_filter = self.base_style_group.hover._filter
-            computed_color = self.get_resolved_property(prop, StyleType.HOVER)
+            computed_color = getattr(self.base_style_group.hover, prop.name.lower())
 
-            for computed_color in hover_filter:
-                computed_color = apply_filter(value, computed_color)
+            if computed_color == None:
+                computed_color = self._inline_values[prop.get_index()]
+            if computed_color == None:
+                computed_color = getattr(self.base_style_group.normal, prop.name.lower())
+                if computed_color == None:
+                    return
+
+            for token in hover_filter:
+                computed_color = apply_filter(computed_color, token)
                 
             idx = prop.get_index()
             self._computed_hover_style_values[idx] = computed_color

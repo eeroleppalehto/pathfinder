@@ -237,11 +237,13 @@ class MazeApp:
             self.maze_renderer.incremental_update_overlay(updates)
 
     def generate_random_maze(self):
+        self.stop()
         self.maze_model.maze_generator.state = "random"
         self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
         self.maze_renderer.initialize_background()
 
     def generate_empty_maze(self):
+        self.stop()
         self.maze_model.maze_generator.state = "empty"
         self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
         self.maze_renderer.initialize_background()
