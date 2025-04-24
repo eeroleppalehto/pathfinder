@@ -1,6 +1,5 @@
 import pygame
 import sys
-import copy
 from pygame.locals import QUIT
 from .MazeGenerator import MazeGenerator
 from .MazeModel import MazeModel
@@ -151,8 +150,8 @@ class MazeApp:
         self.maze_model.current_step = -1
         self.maze_model.steps = []
         self.UserInterface.reset_timeline()
-        self.maze_model.current_maze = copy.deepcopy(self.maze_model.original_maze)
-        self.maze_renderer.initialize_background()
+        self.maze_model.reset_maze_to_original()
+        self.maze_renderer.update_maze_surface()
         
 
     def next_step(self):
@@ -204,7 +203,7 @@ class MazeApp:
         for step_index in range(start, end + 1):
             updates = self.maze_model.steps[step_index]
             for x, y, value in updates:
-                self.maze_model.current_maze[x][y] = value
+                self.maze_model.maze[x][y] = value
             self.maze_renderer.incremental_update_overlay(updates)
 
 
@@ -216,7 +215,7 @@ class MazeApp:
         for i in range(start_step, end_step + 1):
             updates = self.maze_model.steps[i]
             for x, y, value in updates:
-                self.maze_model.current_maze[x][y] = value
+                self.maze_model.maze[x][y] = value
             
             self.maze_renderer.incremental_update_overlay(updates)
 
@@ -224,14 +223,20 @@ class MazeApp:
         """
         Rebuilds the maze to the state at step_index, and reconstructs the overlay.
         """
-        self.maze_model.rebuild_state(step_index)
-        self.maze_renderer.overlay_surface.fill((0, 0, 0, 0))
-        for i in range(0, step_index + 1):
-            updates = self.maze_model.steps[i]
+        self.maze_model.display_step(step_index)
+        for i in range(step_index, self.last_scrubbed_step + 1):
+            updates = self.maze_model.steps[i].copy()
+            if updates[0][2] == 'V':
+                updates[0] = (updates[0][0], updates[0][1], 0)
+            else:
+                for j in range(len(updates)):
+                    updates[j] = (updates[j][0], updates[j][1], 'V')
             self.maze_renderer.incremental_update_overlay(updates)
 
     def generate_random_maze(self):
-        self.stop()
+        """Generates a new random maze and updates the maze renderer
+        """
+        self.stop() # stop the current simulation
         self.maze_model.maze_generator.state = "random"
         self.maze_model.generate_new_maze(SIZE_OF_MAZE, SIZE_OF_MAZE)
         self.maze_renderer.update_maze_surface()

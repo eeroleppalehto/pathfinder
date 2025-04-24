@@ -64,7 +64,7 @@ class MazeDrawing:
         if event.type == pygame.MOUSEBUTTONUP:
             self._prev_cell = None
             self.reset_steps()
-            self.maze_renderer.initialize_background()
+            self.maze_renderer.update_maze_surface()
      
         if event.type == pygame.MOUSEBUTTONDOWN:
             new_val = self.current_draw_action(row, col)
@@ -128,18 +128,17 @@ class MazeDrawing:
         return cells
 
     def draw_wall(self, row: int, col: int) -> int | None:
-        if self.maze_model.original_maze[row][col] in ('S', 'E'):
+        if self.maze_model.maze[row][col] in ('S', 'E'):
             return None
-        self.maze_model.original_maze[row][col] = 1
-        self.maze_model.current_maze[row][col] = 1
+        self.maze_model.maze[row][col] = 1
+        # self.maze_model.current_maze[row][col] = 1
         self.reset_steps()
         return 1
 
     def remove_wall(self, row: int, col: int) -> int | None:
-        if self.maze_model.original_maze[row][col] in ('S', 'E'):
+        if self.maze_model.maze[row][col] in ('S', 'E'):
             return None
-        self.maze_model.original_maze[row][col] = 0
-        self.maze_model.current_maze[row][col] = 0
+        self.maze_model.maze[row][col] = 0
         self.reset_steps()
         return 0
 
@@ -148,12 +147,10 @@ class MazeDrawing:
         if (row, col) == (old_r, old_c):
             return None
         # clear old start cell
-        self.maze_model.original_maze[old_r][old_c] = 0
-        self.maze_model.current_maze[old_r][old_c] = 0
+        self.maze_model.maze[old_r][old_c] = 0
 
         # set new start
-        self.maze_model.original_maze[row][col] = 'S'
-        self.maze_model.current_maze[row][col] = 'S'
+        self.maze_model.maze[row][col] = 'S'
         self.maze_model.start = (row, col)
         self.reset_steps()
         
@@ -163,11 +160,9 @@ class MazeDrawing:
         old_r, old_c = self.maze_model.end
         if (row, col) == (old_r, old_c):
             return None
-        self.maze_model.original_maze[old_r][old_c] = 0
-        self.maze_model.current_maze[old_r][old_c] = 0
+        self.maze_model.maze[old_r][old_c] = 0
 
-        self.maze_model.original_maze[row][col] = 'E'
-        self.maze_model.current_maze[row][col] = 'E'
+        self.maze_model.maze[row][col] = 'E'
         self.maze_model.end = (row, col)
         self.reset_steps()
         return 'E'
@@ -175,4 +170,6 @@ class MazeDrawing:
     def reset_steps(self):
         self.maze_model.current_step = -1
         if self.maze_model.steps:
+            self.maze_model.reset_maze_to_original()
+            self.maze_renderer.update_maze_surface()
             self.maze_model.steps.clear()
