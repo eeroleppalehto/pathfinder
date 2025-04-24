@@ -17,6 +17,7 @@ class UIComponent(InlineStyle):
     Manages position, size, style, parent/child hierarchy,
     event propagation, and activation state.
     """
+
     def __init__(self, pos: tuple[int, int], size: tuple[int, int], component_name: str, style_group: StyleGroup):
         self._local_position = pos  
         self._size = size
@@ -33,11 +34,19 @@ class UIComponent(InlineStyle):
         return self._name
 
     def set_root(self, root: UIRoot | None):
+        """
+        Sets the root element and 
+        propagates it to all children.
+        """
         self.root = root
         for child in self.children:
             child.set_root(root)
     
     def add_children(self, children: list[UIComponent]):
+        """
+        Adds child components, 
+        updating their parent/root references
+        """
         for child in children:
             if child.parent is not None:
                 child.parent.remove_child(child)
@@ -47,6 +56,10 @@ class UIComponent(InlineStyle):
             
 
     def remove_children(self, children: list[UIComponent]) -> None:
+        """
+        Removes children 
+        and clears their parent/root references.
+        """
         for child in children:
             if child in self.children:
                 self.children.remove(child)
@@ -54,9 +67,16 @@ class UIComponent(InlineStyle):
                 child.set_root(None)
 
     def set_parent(self, parent: UIComponent) -> None:
+        """
+        Sets the parent of this component
+        """
         parent.add_child(self)
 
     def get_absolute_position(self) -> tuple[int, int]:
+        """
+        Returns the absolute screen position 
+        (accounts for parent positions).
+        """
         if self.parent:
             parent_x, parent_y = self.parent.get_absolute_position()
             local_x, local_y = self._local_position
@@ -65,22 +85,43 @@ class UIComponent(InlineStyle):
             return self._local_position
 
     def get_position(self):
+        """
+        Alias for get_absolute_position.
+        """
         return self.get_absolute_position()
 
     def set_position(self, x, y):
+        """
+        Sets the local position 
+        relative to the parent
+        """
         self._local_position = (x, y)
 
     def get_size(self):
+        """
+        Returns the component's size as a tuple
+        """
         return self._size
     
     def set_size(self, width, height):
+        """
+        Updates the component's dimensions
+        """
         self._size = (width, height)
 
     def get_rect(self):
+        """
+        Returns a pygame.
+        Rect representing the component's bounds.
+        """
         abs_pos = self.get_absolute_position()
         return pygame.Rect(abs_pos[0], abs_pos[1], self._size[0], self._size[1])
 
     def set_style(self, style: StyleSheet):
+        """
+        Applies a normal (non-hover) 
+        style to the component and its children.
+        """
         if self.style_manager.normal_style_exists():
             old_style = self.style_manager.get_normal_style()
             old_style.remove_from_object_refereces(self)
@@ -92,6 +133,10 @@ class UIComponent(InlineStyle):
             child.style_manager.set_normal_style(style, self.name)
 
     def set_hover_style(self, style: StyleSheet):
+        """
+        Applies a hover style 
+        to the component and its children.
+        """
         if self.style_manager.hover_style_exists():
             old_style = self.style_manager.get_hover_style()
             old_style.remove_from_object_refereces(self)
@@ -103,31 +148,53 @@ class UIComponent(InlineStyle):
             child.style_manager.set_hover_style(style, self.name)
 
     def get_style_property(self, property: StyleProperty, is_hovered: bool, is_computed: bool = False):
+        """
+        Returns the resolved 
+        value of a style property.
+        """
         return self.style_manager.get_resolved_property(property, is_hovered, is_computed)
         
     def set_style_property(self, property: StyleProperty, value):
+        """
+        Overrides a specific style property.
+        """
         self.style_manager.set_override(property, value)
 
     def get_font(self) -> pygame.font.Font | None:
+        """
+        Returns the resolved font 
+        for the current state (hover/normal).
+        """
         return self.style_manager.get_resolved_font(self.hovered)
 
-    def get_active_style(self):
-        return self.hover_style if self.hovered else self.style
-
     def draw_children(self, surface):
+        """
+        Draws all child components
+        onto the given surface.
+        """
         for child in self.children:
             child.draw(surface)
 
     def propagate_event(self, event):
-        # Shtitty implentation probably should bubble up from the last element in the tree. 
+        """
+        Passes an event down to all children.
+        """
         for child in self.children:
             child.handle_event(event)
 
     def handle_event(self, event):
+        """
+        Base event handling 
+        (propagates events to children). 
+        """
         self.propagate_event(event) 
         return False
     
     def activate(self):
+        """
+        Marks this component as active 
+        (deactivates others in the root registry).
+        """
         if(self.root != None):
             active_component = self.root.registry.get_active()
             if(active_component and active_component != self):
@@ -135,15 +202,21 @@ class UIComponent(InlineStyle):
             self.root.registry.set_active(self)
 
     def deactivate(self):
+        """
+        Clears the active state 
+        (no-op in base class).
+        """
         return
     
     
     
 class Panel(UIComponent):
+
     """
     A simple container that draws a colored rectangle (with optional border)
     and can hold other components. Supports click callbacks and hover detection.
     """
+
     def __init__(self, pos: tuple[int, int] = (0, 0), size: tuple[int, int] = (0, 0), callback: callable = None):
         super().__init__(pos, size, "PANEL", DefaultStyles.Panel)
         self._name = "PANEL"
@@ -188,6 +261,7 @@ class Header(UIComponent):
     Caches its rendered surface for efficiency and supports background,
     text color, and alignment styles.
     """
+
     def __init__(self, pos: tuple[int, int], text: str):
         super().__init__(pos, (0, 0), "HEADER", DefaultStyles.Header)
         self._name = "HEADER"
@@ -207,12 +281,6 @@ class Header(UIComponent):
     def text(self, string: str):
         if self._text != string:
             self._text = string
-            self.update_size()
-            self.needs_update = True
-    
-    def set_text_content(self, text: str):
-        if self._text != text:
-            self._text = text
             self.update_size()
             self.needs_update = True
 
@@ -275,7 +343,7 @@ class Image(UIComponent):
         except pygame.error as e:
             print(f"Failed to load image '{src}': {e}")
             image_surface = pygame.Surface(size)
-            image_surface.fill((255, 0, 0))  # Fallback: red surface
+            image_surface.fill((255, 0, 0)) 
 
         if size and size != (0, 0):
             image_surface = pygame.transform.scale(image_surface, size)

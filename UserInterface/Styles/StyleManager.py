@@ -7,16 +7,16 @@ from .StyleFilters import FilterToken, apply_all_filters, apply_filter
 from UserInterface.Defaults.DefaultStyles import DefaultStyles
 
 INHERITABLE_STYLE_PROPERTIES = (
-    "background_color",
-    "foreground_color",
-    "text_color",
-    "font_family",
-    "font_size",
-    "border_color",
-    "border_size",
-    "thumb_color",
-    "text_align",
-    "filter"
+    StyleProperty.BACKGROUND_COLOR,
+    StyleProperty.FOREGROUND_COLOR,
+    StyleProperty.TEXT_COLOR,
+    StyleProperty.FONT_FAMILY,
+    StyleProperty.FONT_SIZE,
+    StyleProperty.BORDER_COLOR,
+    StyleProperty.BORDER_SIZE,
+    StyleProperty.THUMB_COLOR,
+    StyleProperty.TEXT_ALIGN,
+    StyleProperty.FILTER
 )
 
 COMPUTED_STYLE_PROPERTIES = (
@@ -32,7 +32,14 @@ NUM_STYLE_PROPERTIES = len(StyleProperty) - 1
 
 
 class InlineStyle:
-    """Mixin for adding inline style overrides (normal state only)."""
+    """
+    Mixin enabling per-instance style overrides for UI components.
+
+    Separates inline (object-level) style properties from shared StyleSheet defaults,
+    allowing individual components to override specific properties without affecting others.
+    Inline values always take precedence over StyleSheet settings for the normal state,
+    and trigger recomputation of any dependent (computed) style values, such as filtered colors.
+    """
     def get_style_property(self, prop: StyleProperty, is_hovered: bool):
         style_type = StyleType.HOVER if is_hovered else StyleType.NORMAL
         return self.style_manager.get_resolved_property(prop, style_type)
@@ -127,7 +134,17 @@ class InlineStyle:
         self.set_style_property(StyleProperty.TEXT_ALIGN, align)
 
 class ComponentStyleManager:
-    """Manages base and inline style overrides (normal state only)."""
+    """
+    Resolves and manages styles for a component by merging three layers:
+      1. DefaultStyles (global defaults per component type)
+      2. Shared StyleSheet (normal and hover states)
+      3. Inline overrides (per-instance)
+
+    Applies filter tokens to compute derived style values (e.g., color transformations),
+    caches computed results for normal and hover states, and updates them when overrides change.
+    Responsible for all style lookup and recomputation logic.
+    """
+
     def __init__(self, component_name, normal_style, hover_style):
         self.base_style_group = StyleGroup(None, None)
         self._default_style_group = DefaultStyles.get_by_component_name(component_name)
@@ -141,13 +158,20 @@ class ComponentStyleManager:
         self.set_hover_style(hover_style, component_name)
 
     def set_normal_style(self, style: StyleSheet, component_name: str):
+        """
+        Load and compute all normal-state style properties.
+
+        Inherits missing values from defaults, applies inline overrides,
+        and filters to produce final computed styles.
+        """
+
         default_sheet = self._default_style_group.normal
-        
         for property in INHERITABLE_STYLE_PROPERTIES:
-            val = getattr(style, property)
+            name = property.name.lower()
+            val = getattr(style, name)
             if val is DEFAULT:
-                default_value = getattr(default_sheet, property)
-                setattr(style, property, default_value)
+                default_value = getattr(default_sheet, name)
+                setattr(style, name, default_value)
 
 
         self.base_style_group = StyleGroup(style, self.base_style_group.hover)
@@ -176,18 +200,24 @@ class ComponentStyleManager:
 
       
     def set_hover_style(self, style: StyleSheet, component_name: str):
+        """
+        Load and compute all hover-state style properties.
+        Inherits missing values from default hover styles, applies inline overrides,
+        and processes filter tokens to produce final computed hover styles.
+        """
+
         if self._default_style_group is None:
             self._default_style_group = DefaultStyles.get_by_component_name(component_name)
         
         default_sheet = self._default_style_group.hover
 
         for property in INHERITABLE_STYLE_PROPERTIES:
-            val = getattr(style, property)
+            name = property.name.lower()
+            val = getattr(style, name)
             if val is DEFAULT:
-                setattr(style, property, getattr(default_sheet, property))
+                setattr(style, name, getattr(default_sheet, name))
         
         self.base_style_group = StyleGroup(self.base_style_group.normal, style)
-
         if style._filter == None:
             return
 
@@ -211,6 +241,15 @@ class ComponentStyleManager:
             self._computed_hover_style_values[idx] = value
 
     def update_normal_computed_styles(self):
+        """
+        Recompute and cache normal-state computed properties based on current inline and base styles.
+
+        Retrieves active filter tokens, then for each computed property:
+        - Determines the source value: inline override or base stylesheet.
+        - Applies all filter tokens to derive the computed color.
+        - Stores the result in `_computed_normal_style_values` for quick lookup.
+        """
+         
         FILTER_PROPERTY = StyleProperty.FILTER
         filter = self._inline_values[FILTER_PROPERTY.get_index()]
 
@@ -245,16 +284,35 @@ class ComponentStyleManager:
         return self.base_style_group != None and self.base_style_group.hover != None
     
     def get_normal_style(self):
+        """
+        Retrieve the normal style from the base style group.
+        Returns the normal style if it exists, otherwise None.
+        """
         if self.base_style_group != None:
             return self.base_style_group.normal
         return None
     
     def get_hover_style(self):
+        """
+        Retrieve the hover style from the base style group.
+        Returns the hover style if it exists, otherwise None.
+        """
         if self.base_style_group != None:
             return self.base_style_group.hover
         return None
     
     def set_computed_override(self, prop:StyleProperty, value: tuple[int, int, int] | None):
+        """
+        Apply or clear a computed override of a style property for both normal and hover states.
+
+        When you give it an RGB tuple, this method:
+        1. Verifies it’s one of the COMPUTED_STYLE_PROPERTIES.
+        2. Applies the current normal‐state filter tokens (inline or from the stylesheet)
+           to the RGB tuple and caches the result in `_computed_normal_style_values`.
+        3. If there is a hover‐state filter, applies that too and caches it in `_computed_hover_style_values`.
+        4. If you pass in `None`, it simply returns without changing anything.
+        """
+
         if prop is StyleProperty.NONE or value == None:
             return
         
@@ -295,6 +353,13 @@ class ComponentStyleManager:
 
 
     def update_computed_style(self, stylesheet, prop:StyleProperty, value: tuple[int, int, int] | None):
+        """
+        Recompute one filtered color when a stylesheet value changes.
+        - Determines if it's the normal or hover sheet.
+        - Skips if a normal inline override exists.
+        - Applies the sheet’s filter tokens to `value`.
+        - Updates the appropriate computed cache.
+        """
         is_normal_stylesheet = stylesheet == self.base_style_group.normal
         if is_normal_stylesheet and self._inline_mask & prop:
             return
@@ -321,6 +386,11 @@ class ComponentStyleManager:
 
 
     def set_override(self, prop: StyleProperty, value):
+        """
+        Set an inline override for a specific style property.
+        - If the value is None, the override is cleared.
+        - Otherwise, the property is marked as overridden, and the value is stored.
+        """
         if prop is StyleProperty.NONE:
             return
         
@@ -336,11 +406,20 @@ class ComponentStyleManager:
             self._inline_font = None
 
     def clear_overrides(self):
+        """
+        Clear all inline overrides for the component.
+        Resets the inline mask, inline values, and inline font to their default states.
+        """
         self._inline_mask = StyleProperty.NONE
         self._inline_values = [None] * NUM_STYLE_PROPERTIES
         self._inline_font = None
 
     def get_resolved_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL, is_computed = False):
+        """
+        Retrieve the resolved value of a style property.
+        - If `is_computed` is True, returns the computed value if applicable.
+        - Otherwise, returns the non-computed value based on the style type (normal or hover).
+        """
         if is_computed:
             if(prop not in COMPUTED_STYLE_PROPERTIES):
                 return self._get_non_computed_style_property(prop, style_type)
@@ -351,6 +430,10 @@ class ComponentStyleManager:
             return self._get_non_computed_style_property(prop, style_type)
         
     def _get_computed_style_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL):
+        """
+        Retrieve the computed value of a style property for the specified style type.
+        - Falls back to the non-computed value if no computed value is available.
+        """
         if style_type == StyleType.NORMAL:
             value = self._computed_normal_style_values[prop.get_index()]
             if(value):
@@ -363,6 +446,10 @@ class ComponentStyleManager:
         return self._get_non_computed_style_property(prop, style_type)
     
     def _get_non_computed_style_property(self, prop: StyleProperty, style_type: int = StyleType.NORMAL):
+        """
+        Retrieve the non-computed value of a style property for the specified style type.
+        - Checks inline overrides first, then falls back to the base style group.
+        """
         if prop is StyleProperty.NONE:
             return None
         
@@ -379,6 +466,11 @@ class ComponentStyleManager:
             return getattr(self.base_style_group.normal, prop.name.lower())
         
     def get_resolved_font(self, style_type: int) -> pygame.font.Font:
+        """
+        Retrieve the resolved font for the specified style type.
+        - Combines font family and size from the base style group or inline overrides.
+        - Caches the resolved font for reuse.
+        """
         if self._inline_font:
             return self._inline_font
         base = self.base_style_group.get(style_type)
