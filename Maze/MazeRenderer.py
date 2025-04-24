@@ -104,6 +104,16 @@ class MazeRenderer:
     #                 color = self.color_scheme.get(current, (0, 0, 0, 0))
     #                 pygame.draw.rect(self.overlay_surface, color, rect)
 
+    def incremental_update_overlay(self, updates):
+        """
+        Very fast: only draw the exact cells that just changed.
+        `updates` is a list of (row, col, new_val) tuples.
+        """
+        for i, j, val in updates:
+            rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
+                               self.cell_size, self.cell_size)
+            pygame.draw.rect(self.overlay_surface, self.color_scheme[val], rect)
+            
     def draw(self, surface: pygame.Surface):
         """Draws the maze on the given surface, including the background and overlay."""
         # Blit both the background and overlay surfaces using the computed offsets.
