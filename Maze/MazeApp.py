@@ -106,7 +106,7 @@ class MazeApp:
                     
                     self.maze_model.current_step += steps_to_apply
                 else:
-                    self.final_step_count = len(self.maze_model.steps)
+                    self.final_step_count = self.maze_model.get_final_path_length()
 
             # --- Draw Frame ---
             self.screen.fill(COLOR_WINDOW_BG)
@@ -193,7 +193,7 @@ class MazeApp:
         self.maze_model.current_step = new_step
         self.last_scrubbed_step = new_step
         self.step_counter = new_step + 1
-        self.final_step_count = len(self.maze_model.steps)
+        self.final_step_count = self.maze_model.get_final_path_length()
 
         self.pause()
 

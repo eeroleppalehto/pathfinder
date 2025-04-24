@@ -57,6 +57,9 @@ class MazeModel:
                 elif self.original_maze[i][j] == 'E':
                     end = (i, j)
         return start, end
+    
+    def get_final_path_length(self):
+        return len(self.steps[-1])
 
     def run_algorithm(self, solver_factory, algorithm_name):
         """
