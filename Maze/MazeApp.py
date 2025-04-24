@@ -253,6 +253,9 @@ class MazeApp:
 
     def set_draw_state(self, draw_state):
         VALID_STATES = ["draw_walls", "remove_walls", "place_start", "place_end"]
+        needs_reset = self.maze_model.current_step != -1
+        if needs_reset:
+            self.stop()
         if draw_state in VALID_STATES :
             self.drawing_state = draw_state
             self.maze_drawing.current_draw_state = self.drawing_state
