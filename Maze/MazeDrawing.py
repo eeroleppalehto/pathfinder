@@ -63,8 +63,6 @@ class MazeDrawing:
 
         if event.type == pygame.MOUSEBUTTONUP:
             self._prev_cell = None
-            self.reset_steps()
-            self.maze_renderer.update_maze_surface()
      
         if event.type == pygame.MOUSEBUTTONDOWN:
             new_val = self.current_draw_action(row, col)
@@ -131,8 +129,6 @@ class MazeDrawing:
         if self.maze_model.maze[row][col] in ('S', 'E'):
             return None
         self.maze_model.maze[row][col] = 1
-        # self.maze_model.current_maze[row][col] = 1
-        self.reset_steps()
         return 1
 
     def remove_wall(self, row: int, col: int) -> int | None:
@@ -168,9 +164,9 @@ class MazeDrawing:
         return 'E'
 
     def reset_steps(self):
-        self.maze_model.current_step = -1
-        self.maze_model.last_step = -1
         if self.maze_model.steps:
+            self.maze_model.current_step = -1
+            self.maze_model.last_step = -1
             self.maze_model.reset_maze_to_original()
             self.maze_renderer.update_maze_surface()
             self.maze_model.steps.clear()

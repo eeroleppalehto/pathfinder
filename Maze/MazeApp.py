@@ -176,6 +176,8 @@ class MazeApp:
                     self.maze_renderer.update_maze_surface_cell(x, y, 0)
                 else:
                     self.maze_renderer.update_maze_surface_cell(x, y, 'V')
+        else:
+            self.step_counter = 0
 
     def on_speed_changed(self, value: float):
         self.speed = value
@@ -203,7 +205,6 @@ class MazeApp:
             for _ in range(new_step, previous_step):
                 self.prev_step()
         
-        self.step_counter = new_step + 1
         self.pause()
 
     def _apply_steps_in_range(self, start: int, end: int):

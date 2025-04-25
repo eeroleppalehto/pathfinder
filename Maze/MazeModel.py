@@ -127,10 +127,6 @@ class MazeModel:
         if step_idx < -1 or step_idx >= len(self.steps):
             return
 
-        if step_idx == -1:
-            self.last_step = -1
-            return
-
         if step_idx < self.last_step:
             self.remove_previous_steps(step_idx, self.last_step)
         else:
