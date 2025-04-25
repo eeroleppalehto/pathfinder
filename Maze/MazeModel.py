@@ -115,10 +115,6 @@ class MazeModel:
             for (x, y, _) in self.steps[i]:
                 self.maze[x][y] = 0
 
-        # Update the last step to the previous step.
-        self.last_step = step_ix
-        self.current_step = step_ix
-
     def display_step(self, step_idx):
         """
         Display the maze at a specific step index.
@@ -142,5 +138,6 @@ class MazeModel:
             for i in range(self.last_step + 1, step_idx + 1):
                 for (x, y, val) in self.steps[i]:
                     self.maze[x][y] = val
-            self.last_step = step_idx
-            self.current_step = step_idx
+        # Update step states
+        self.last_step = step_idx
+        self.current_step = step_idx
