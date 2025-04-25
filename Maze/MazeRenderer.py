@@ -48,7 +48,6 @@ class MazeRenderer:
 
         # Create surfaces for the background and the overlay.
         self.background_surface = pygame.Surface((self.surface_width, self.surface_height))
-        # Use SRCALPHA to allow for overlay transparency.
         self.overlay_surface = pygame.Surface((self.surface_width, self.surface_height), pygame.SRCALPHA)
         self.overlay_surface = self.overlay_surface.convert_alpha()
 

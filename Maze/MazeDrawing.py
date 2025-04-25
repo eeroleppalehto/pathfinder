@@ -60,12 +60,6 @@ class MazeDrawing:
         col = mx // self.maze_renderer.cell_size
         row = my // self.maze_renderer.cell_size
 
-
-        if event.type == pygame.MOUSEBUTTONUP:
-            self._prev_cell = None
-            self.reset_steps()
-            self.maze_renderer.initialize_background()
-     
         if event.type == pygame.MOUSEBUTTONDOWN:
             new_val = self.current_draw_action(row, col)
             if new_val is not None:
@@ -97,6 +91,13 @@ class MazeDrawing:
         if self.current_draw_state != "disabled":
             self.cursor.set_cross_cursor()
 
+    def initialize_surface(self):
+        if self.needs_initialization:
+            self._prev_cell = None
+            self.reset_steps()
+            self.maze_renderer.initialize_background()
+            self.needs_initialization = False
+     
     def draw_line(self, start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
         # (same Bresenham list-based implementation as before)
         start_row, start_col = start
