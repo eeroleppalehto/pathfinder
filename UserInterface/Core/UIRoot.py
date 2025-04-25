@@ -5,6 +5,16 @@ if typing.TYPE_CHECKING:
     from UserInterface.Components.UIComponents  import UIComponent
 
 class ActiveComponentRegistry:
+    """
+    Registry for managing the currently active UI component.
+
+    This is primarily used to track the component that is currently active,
+    and can be extended to include hovered or focused components as well.
+    
+    For example, it is used in components like dropdown menus to deactivate
+    the previously active component when a new one is activated, ensuring
+    that only one remains active at a time.
+    """
     def __init__(self):
         self.active:  UIComponent | None = None
         
@@ -18,6 +28,15 @@ class ActiveComponentRegistry:
         self.active = None
 
 class UIRoot:
+    """
+    UIRoot is the top-level container for all UI components.
+
+    It maintains a list of registered UIComponent instances and a shared
+    ActiveComponentRegistry for managing focus, hover states, and behaviors
+    such as collapsing dropdown menus. UIRoot handles drawing and event
+    propagation across its child components, ensuring consistent UI flow.
+    """
+    
     def __init__(self):
         self._components: list[UIComponent] = []
         self.registry = ActiveComponentRegistry()

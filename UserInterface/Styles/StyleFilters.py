@@ -5,6 +5,9 @@ TO_NORMALIZED_COLOR_VALUE = 1.0 / 255.0
 TO_NORMALIZED_HUE_VALUE = 1.0 / 60.0
 
 class FilterType(IntEnum):
+    """
+    Represents different types of filters that can be applied to colors.    
+    """
     START      = auto()
     BRIGHTNESS = auto()
     CONTRAST   = auto()
@@ -15,11 +18,18 @@ class FilterType(IntEnum):
 
 
 class FilterToken:
+    """
+    Represents a filter operation with a specific type and value.
+    Used to apply transformations to colors.
+    """
     def __init__(self, filter_type: FilterType, value: float):
         self.type  = filter_type
         self.value = value
 
 def _apply_brightness_filter(color: tuple[int, int, int], filter_token: FilterToken) -> tuple[int, int, int]:
+    """
+    Adjusts the brightness of a color based on the filter token value.
+    """
     if filter_token.type is not FilterType.BRIGHTNESS:
         raise ValueError("FilterToken must be of type BRIGHTNESS")
 
@@ -46,6 +56,9 @@ def _apply_brightness_filter(color: tuple[int, int, int], filter_token: FilterTo
 
 
 def _apply_contrast_filter( color: tuple[int, int, int], filter_token: FilterToken) -> tuple[int, int, int]:
+    """
+    Adjusts the contrast of a color based on the filter token value.
+    """
     if filter_token.type is not FilterType.CONTRAST:
         raise ValueError("FilterToken must be of type CONTRAST")
     
@@ -64,10 +77,10 @@ def _apply_contrast_filter( color: tuple[int, int, int], filter_token: FilterTok
 
     return (min(255, max(0, new_red)), min(255, max(0, new_green)), min(255, max(0, new_blue)))
 
-def _apply_saturation_filter(
-    color: tuple[int, int, int],
-    filter_token: FilterToken
-) -> tuple[int, int, int]:
+def _apply_saturation_filter(color: tuple[int, int, int], filter_token: FilterToken) -> tuple[int, int, int]:
+    """
+    Adjusts the saturation of a color based on the filter token value.
+    """
     if filter_token.type is not FilterType.SATURATION:
         raise ValueError("FilterToken must be of type SATURATION")
 
@@ -94,10 +107,10 @@ def _apply_saturation_filter(
     return (min(255, max(0, new_red)), min(255, max(0, new_green)), min(255, max(0, new_blue)))
 
 
-def _apply_tint_filter(
-    color: tuple[int, int, int],
-    filter_token: FilterToken
-) -> tuple[int, int, int]:
+def _apply_tint_filter( color: tuple[int, int, int], filter_token: FilterToken)-> tuple[int, int, int]:
+    """
+    Applies a tint to a color by blending it with a specified tint color.
+    """
     if filter_token.type is not FilterType.TINT:
         raise ValueError("FilterToken must be of type TINT")
 
@@ -120,6 +133,9 @@ def _apply_tint_filter(
     return (min(255, max(0, new_red)), min(255, max(0, new_green)), min(255, max(0, new_blue)))
 
 def _apply_hue_filter(color: tuple[int, int, int], filter_token: FilterToken):
+    """
+    Rotates the hue of a color by a specified degree value.
+    """
     if filter_token.type is not FilterType.HUE:
         raise ValueError("FilterToken must be of type HUE")
 
@@ -148,7 +164,6 @@ def _apply_hue_filter(color: tuple[int, int, int], filter_token: FilterToken):
 
     new_hue = (orig_hue + delta_hue) % 360
 
-
     sector = new_hue * TO_NORMALIZED_HUE_VALUE
     second = chroma * (1 - abs((sector % 2) - 1))
 
@@ -171,7 +186,10 @@ def _apply_hue_filter(color: tuple[int, int, int], filter_token: FilterToken):
 
     return (out_r, out_g, out_b)
 
-# --- wire up the filters ---
+
+"""
+Maps filter types to their corresponding filter functions.
+"""
 filter_functions: list[Optional[callable]] = [None] * FilterType.END
 filter_functions[FilterType.BRIGHTNESS] = _apply_brightness_filter
 filter_functions[FilterType.CONTRAST]   = _apply_contrast_filter
@@ -180,6 +198,9 @@ filter_functions[FilterType.HUE] = _apply_hue_filter
 filter_functions[FilterType.TINT] = _apply_tint_filter
 
 
+""" 
+Filter functions for creating filter tokens 
+"""
 def brightness(brightness_amount: float) -> FilterToken:
     return FilterToken(FilterType.BRIGHTNESS, brightness_amount)
 
@@ -196,6 +217,9 @@ def tint(tint_color: tuple[int, int, int], tint_amount: float) -> FilterToken:
     return FilterToken(FilterType.TINT, (tint_color, tint_amount))
 
 def apply_filter(color: Optional[tuple[int, int, int]], filter_token: FilterToken) -> Optional[tuple[int, int, int]]:
+    """
+    Applies a single filter to a color using the specified filter token.
+    """
     if (
         color is None
         or not isinstance(color, tuple)
@@ -209,6 +233,9 @@ def apply_filter(color: Optional[tuple[int, int, int]], filter_token: FilterToke
 
 
 def apply_all_filters(color: Optional[tuple[int, int, int]],filter_tokens: Optional[list[FilterToken]]) -> Optional[tuple[int, int, int]]:
+    """
+    Applies a sequence of filters to a color in the order they are provided.
+    """
     if color is None or not isinstance(color, tuple) or not filter_tokens:
         return color
 

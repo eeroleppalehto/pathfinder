@@ -130,6 +130,7 @@ class MazeApp:
         sys.exit()
 
     def play(self):
+        self.maze_drawing.initialize_surface()
         self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions["disabled"]
 
         if not self.maze_model.steps:
