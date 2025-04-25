@@ -72,7 +72,7 @@ class MazeRenderer:
         Very fast: only draw the exact cells that just changed.
         `updates` is a list of (row, col, new_val) tuples.
         """
-        len(updates)
+        
         for i, j, val in updates:
             rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
                                self.cell_size, self.cell_size)
