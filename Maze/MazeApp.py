@@ -176,24 +176,28 @@ class MazeApp:
 
     def on_timeline_changed(self, slider_value: int):
         """
-        Updates the maze to reflect the state at the selected step in the timeline.
+        Handles scrubbing of the timeline slider.  When moving backwards,
+        performs a full overlay rewind and replay; when forwards, uses
+        fast incremental draws.
         """
         if not self.maze_model.steps:
             self.play()
 
         new_step = max(0, min(int(round(slider_value)), len(self.maze_model.steps) - 1))
-        previous_step = self.last_scrubbed_step
+        prev_step = self.last_scrubbed_step
 
-        if new_step > previous_step:
-            self._apply_steps_forward(previous_step + 1, new_step)
-        elif new_step < previous_step:
+        if new_step > prev_step:
+            # Fast-forward: draw only the delta
+            self._apply_steps_forward(prev_step + 1, new_step)
+        elif new_step < prev_step:
+            # Rewind: clear overlay and replay up to new_step
             self._rewind_to_step(new_step)
 
+        # Update model indices and UI state
         self.maze_model.current_step = new_step
         self.last_scrubbed_step = new_step
         self.step_counter = new_step + 1
         self.final_step_count = self.maze_model.get_final_path_length()
-
         self.pause()
 
     def _apply_steps_in_range(self, start: int, end: int):
@@ -209,28 +213,34 @@ class MazeApp:
 
     def _apply_steps_forward(self, start_step: int, end_step: int):
         """
-        Applies maze updates step-by-step from start_step to end_step (inclusive),
-        and updates the overlay accordingly.
+        Draw the solver steps from start_step to end_step inclusive by
+        applying model updates and overlay draws one step at a time.
         """
         for i in range(start_step, end_step + 1):
             updates = self.maze_model.steps[i]
-            for x, y, value in updates:
-                self.maze_model.maze[x][y] = value
-            
+            # update model state
+            for x, y, val in updates:
+                self.maze_model.maze[x][y] = val
+            # overlay draw
             self.maze_renderer.incremental_update_overlay(updates)
 
     def _rewind_to_step(self, step_index: int):
         """
-        Rebuilds the maze to the state at step_index, and reconstructs the overlay.
+        Jump back to step_index by:
+          1) rewinding the model state via display_step(step_index)
+          2) clearing the overlay entirely
+          3) replaying all dynamic steps [1..step_index] onto the overlay
         """
+        # 1) set model.maze and pointers to exact step
         self.maze_model.display_step(step_index)
-        for i in range(step_index, self.last_scrubbed_step + 1):
-            updates = self.maze_model.steps[i].copy()
-            if updates[0][2] == 'V':
-                updates[0] = (updates[0][0], updates[0][1], 0)
-            else:
-                for j in range(len(updates)):
-                    updates[j] = (updates[j][0], updates[j][1], 'V')
+
+        # 2) clear prior visited/final markings
+        self.maze_renderer.clear_overlay()
+
+        # 3) replay every step to redraw overlay
+        #    skip step 0 since it's usually initial cell visit
+        for i in range(1, step_index + 1):
+            updates = self.maze_model.steps[i]
             self.maze_renderer.incremental_update_overlay(updates)
 
     def generate_random_maze(self):
