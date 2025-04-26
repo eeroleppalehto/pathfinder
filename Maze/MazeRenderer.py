@@ -92,7 +92,7 @@ class MazeRenderer:
             rect = pygame.Rect(j * self.cell_size, i * self.cell_size,
                                self.cell_size, self.cell_size)
             pygame.draw.rect(self.overlay_surface, self.color_scheme[val], rect)
-            
+
     def draw(self, surface: pygame.Surface):
         """Draws the maze on the given surface, including the background and overlay."""
         # Blit both the background and overlay surfaces using the computed offsets.

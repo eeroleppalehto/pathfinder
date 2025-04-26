@@ -34,8 +34,8 @@ class MazeGenerator:
         where start is placed top left and end to bottom right.
         
         Args:
-            width (int): width of the generated maze
-            height (int): height of the generated maze
+            num_cols (int): width of the generated maze
+            num_rows (int): height of the generated maze
             seed (int | float | str | bytes | bytearray | None): Variable to initialize seed. Defaults to None.
 
         Returns:
