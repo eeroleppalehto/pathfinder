@@ -65,14 +65,24 @@ class MazeDrawing:
             self._prev_cell = None
      
         if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.current_draw_state == "place_start":
+                cleared_cell = (self.maze_model.start[0], self.maze_model.start[1], 0) 
+            elif self.current_draw_state == "place_end":
+                cleared_cell = (self.maze_model.end[0], self.maze_model.end[1], 0)
+            else:
+                cleared_cell = None
+
             new_val = self.current_draw_action(row, col)
             if new_val is not None:
                 self.needs_initialization = True
-                self.maze_renderer.incremental_update_overlay([(row, col, new_val)])
+                drawn_cell =  (row, col, new_val)
 
-            if self.current_draw_state in ("draw_walls", "remove_walls"):
-                self._prev_cell = (row, col)
-                
+                if self.current_draw_state == "place_end" or self.current_draw_state == "place_start":
+                    self.maze_renderer.incremental_update_overlay([cleared_cell,  drawn_cell])
+                else:
+                    self.maze_renderer.incremental_update_overlay([drawn_cell])
+                        
+                        
         elif event.type == pygame.MOUSEMOTION and event.buttons[0]:
             if self.current_draw_state not in ("draw_walls", "remove_walls"):
                 return
@@ -151,7 +161,6 @@ class MazeDrawing:
             return None
         # clear old start cell
         self.maze_model.maze[old_r][old_c] = 0
-        self.maze_renderer.incremental_update_overlay([(old_r, old_c, 0)])
 
         # set new start
         self.maze_model.maze[row][col] = 'S'
@@ -165,7 +174,6 @@ class MazeDrawing:
         if (row, col) == (old_r, old_c):
             return None
         self.maze_model.maze[old_r][old_c] = 0
-        self.maze_renderer.incremental_update_overlay([(old_r, old_c, 0)])
 
         self.maze_model.maze[row][col] = 'E'
         self.maze_model.end = (row, col)

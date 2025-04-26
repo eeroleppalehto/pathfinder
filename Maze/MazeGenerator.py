@@ -34,8 +34,8 @@ class MazeGenerator:
         where start is placed top left and end to bottom right.
         
         Args:
-            width (int): width of the generated maze
-            height (int): height of the generated maze
+            num_cols (int): width of the generated maze
+            num_rows (int): height of the generated maze
             seed (int | float | str | bytes | bytearray | None): Variable to initialize seed. Defaults to None.
 
         Returns:
@@ -45,49 +45,63 @@ class MazeGenerator:
         if seed is not None:
             random.seed(seed)
 
-        num_cols = num_cols if num_cols % 2 == 1 else num_cols + 1
-        num_rows = num_rows if num_rows % 2 == 1 else num_rows + 1
-        maze = [[1 for _ in range(num_cols)] for _ in range(num_rows)]
-        
-        start_x, start_y = 1, 1
-        maze[start_y][start_x] = 0  # Mark as passage
-        
-        stack = [(start_x, start_y)]
-        while stack:
-            x, y = stack[-1]
-            # Check neighbors in 2-step increments (up, right, down, left).
-            neighbors = []
-            for dx, dy in [(0, -2), (2, 0), (0, 2), (-2, 0)]:
-                nx, ny = x + dx, y + dy
-                if 0 < nx < num_cols and 0 < ny < num_rows and maze[ny][nx] == 1:
-                    neighbors.append((nx, ny))
-            if neighbors:
-                nx, ny = random.choice(neighbors)
-                # Remove wall between the current cell and neighbor.
-                wall_x, wall_y = x + (nx - x) // 2, y + (ny - y) // 2
+        num_cols = (num_cols if num_cols % 2 == 1 else num_cols + 1)
+        num_rows = (num_rows if num_rows % 2 == 1 else num_rows + 1)
+
+        start_col, end_col = 0, num_cols - 1
+        start_row, end_row = 0, num_rows - 1
+
+        maze = [[1] * num_cols for _ in range(num_rows)]
+        maze[start_col + 1][start_row + 1] = 0  
+
+        cell_stack = [(1, 1)]
+        DIRECTIONS = [(0, -2), (2, 0), (0, 2), (-2, 0)]
+
+        while cell_stack:
+            x, y = cell_stack[-1]
+            neighbour_cells = []
+            
+            for direction_x, direction_y in DIRECTIONS:
+                neighbour_x = x + direction_x
+                neighbour_y = y + direction_y
+
+                in_bounds = (0 < neighbour_x < num_cols and 0 < neighbour_y < num_rows)
+                if in_bounds and maze[neighbour_y][neighbour_x] == 1:
+                    neighbour_cells.append((neighbour_x, neighbour_y))
+
+            if neighbour_cells:
+                neighbour_x, neighbour_y = random.choice(neighbour_cells)
+
+                # compute the coordinates of the wall between the current cell and its neighbor
+                wall_x = x + (neighbour_x - x) // 2
+                wall_y = y + (neighbour_y - y) // 2
+
                 maze[wall_y][wall_x] = 0
-                maze[ny][nx] = 0
-                stack.append((nx, ny))
+                maze[neighbour_y][neighbour_x] = 0
+                cell_stack.append((neighbour_x, neighbour_y))
             else:
-                stack.pop()
+                cell_stack.pop()
         
-        # Force a connection to the borders:
+        # open the two corner cells
+        maze[start_row][end_row] = 0
+        maze[start_row][start_col] = 0
+ 
         # Top-left corner connection.
-        maze[0][0] = 0
-        if maze[0][1] == 1 and maze[1][0] == 1:
-            maze[0][1] = 0  # Carve a passage to the right
+        top_left_neighbors_are_walls = (maze[0][1] == 1 and maze[1][0] == 1)
+        if (top_left_neighbors_are_walls):
+            maze[start_row][start_col + 1] = 0  # Carve a passage to the right
         
         # Bottom-right corner connection.
-        maze[num_rows - 1][num_cols - 1] = 0
-        if maze[num_rows - 2][num_cols - 1] == 1 and maze[num_rows - 1][num_cols - 2] == 1:
-            maze[num_rows - 2][num_cols - 1] = 0  # Carve a passage above
+        bottom_right_neighbors_are_walls = (maze[num_rows-2][num_cols-1] == 1 and maze[num_rows-1][num_cols-2] == 1)
+        if bottom_right_neighbors_are_walls:
+            maze[end_row - 1][end_col] = 0 
         
         # Mark start and end positions.
-        maze[0][0] = 'S'
-        maze[num_rows - 1][num_cols - 1] = 'E'
+        maze[start_row][start_col] = 'S'
+        maze[end_row][end_col] = 'E'
         
         return maze
-
+        
     def generate_empty_maze(self, width, height):
         """
         This method generates a empty maze where the outer cells are walls

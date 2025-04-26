@@ -1,48 +1,78 @@
-# Algorithms/BreadthFirstSearch.py
+    # Algorithms/BreadthFirstSearch.py
 from queue import Queue
 import copy
 
 def bfs_steps(maze, start, end, snapshot_interval=1):
-        original = [row.copy() for row in maze]
-        steps = []
-        current_changes = []
-        move_count = 0
-        q = Queue()
-        q.put((start, []))
-        visited = set()
-        final_path = []
-        endpoints = ('S', 'E')
+    original            = [row.copy() for row in maze]
+    search_queue        = Queue()
+    search_queue.put((start[0], start[1], []))
+    visited_cells       = set()
+    snapshots           = []
+    pending_snapshot    = []
+    step_count          = 0
+    found_path          = False
+    final_path          = []
+    num_rows            = len(maze)
+    num_columns         = len(maze[0])
+    
+    END_POINTS          = ('S', 'E')
+    WALL                = 1
+    EMPTY               = 0
 
-        # grab the next node and the path to that node
-        while not q.empty():
-            (x, y), path = q.get()
-            if (x, y) in visited:
+    while not search_queue.empty():
+        x, y, path     = search_queue.get()
+        current_cell   = (x, y)
+
+        if current_cell in visited_cells:
+            continue
+        visited_cells.add(current_cell)
+
+        # mark the cell as visited and add to snapshot
+        if original[x][y] not in END_POINTS:
+            original[x][y]      = 'V'
+            pending_snapshot.append((x, y, 'V'))
+            step_count          += 1
+
+        # take snapshot at intervals
+        if step_count % snapshot_interval == 0 and pending_snapshot:
+            snapshots.append(pending_snapshot.copy())
+            pending_snapshot.clear()
+
+        # check for end point
+        if current_cell == end:
+            found_path = True
+            final_path = path + [(x, y)]
+            break
+
+        # enqueue neighboring cells
+        for direction_x, direction_y in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            neighbor_x = x + direction_x
+            neighbor_y = y + direction_y
+
+            out_of_bounds = (
+                neighbor_x < 0 or neighbor_x >= num_rows or
+                neighbor_y < 0 or neighbor_y >= num_columns
+            )
+            if out_of_bounds:
                 continue
-            visited.add((x, y))
-            if original[x][y] not in endpoints:
-                current_changes.append((x, y, 'V'))
-                original[x][y] = 'V'
-            move_count += 1
-            # periodically take a snapshot of steps
-            if move_count % snapshot_interval == 0:
-                if current_changes:
-                    steps.append(current_changes)
-                    current_changes = []
-            if (x, y) == end:
-                final_path = path + [(x, y)]
-                break
-            # add all the possible neighbouring nodes
-            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
-                nx, ny = x+dx, y+dy
-                if 0<=nx<len(original) and 0<=ny<len(original[0]) and original[nx][ny] !=1:
-                    q.put(((nx, ny), path + [(x, y)]))
-        # append any changes left since last snapshot
-        if current_changes:
-            steps.append(current_changes)
-        path_changes = []
-        if final_path:
-            for (x,y) in final_path:
-                if original[x][y] not in endpoints:
-                    path_changes.append((x,y,'P'))
-            steps.append(path_changes)
-        return final_path, steps
+            if original[neighbor_x][neighbor_y] == WALL:
+                continue
+            if (neighbor_x, neighbor_y) in visited_cells:
+                continue
+
+            search_queue.put((neighbor_x, neighbor_y, path + [(x, y)]))
+
+    if pending_snapshot:
+        snapshots.append(pending_snapshot.copy())
+
+    # record the final path
+    if found_path:
+        final_path_snapshot = [
+            (x, y, 'P') 
+            for x, y in final_path 
+            if original[x][y] not in END_POINTS
+        ]
+        if final_path_snapshot:
+            snapshots.append(final_path_snapshot)
+
+    return (final_path if found_path else []), snapshots
