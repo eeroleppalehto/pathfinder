@@ -4,60 +4,94 @@ import copy
 # change to adjust how greedy A* will be
 HEURISTIC_WEIGHT = 2.0
 
+
 # Manhattan distance heuristic for grid
 def heuristic(a, b):
-    return abs(a[0] - b[0]) + abs(a[1] - b[1])
+     return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
 def a_star_steps(maze, start, end, snapshot_interval=1):
-    original = [row.copy() for row in maze]
-    steps = []
-    current_changes = []
-    move_count = 0
-    open_set = []
-    heapq.heappush(open_set, (0, start, []))
-    visited = set()
-    final_path = []
-    endpoints = ('S', 'E')
+    original            = [row.copy() for row in maze]
+    priority_queue      = []
+    heapq.heappush(
+        priority_queue,
+        (0, start[0], start[1], [])
+    )
+    
+    visited_cells       = set()
+    snapshots           = []
+    pending_snapshot    = []
+    step_count          = 0
+    found_path          = False
+    final_path          = []
+    num_rows            = len(maze)
+    num_columns         = len(maze[0])
 
-    # pull lowest f cost node from heap
-    while open_set:
-        _, (x, y), path = heapq.heappop(open_set)
-        if (x, y) in visited:
+    END_POINTS          = ('S', 'E')
+    WALL                = 1
+    EMPTY               = 0
+
+    while priority_queue:
+        f_cost, x, y, path = heapq.heappop(priority_queue)
+        current_cell       = (x, y)
+
+        if current_cell in visited_cells:
             continue
-        visited.add((x, y))
+        visited_cells.add(current_cell)
 
-        if original[x][y] not in endpoints:
-            current_changes.append((x, y, 'V'))
+        # mark as visited
+        if original[x][y] not in END_POINTS:
             original[x][y] = 'V'
+            pending_snapshot.append((x, y, 'V'))
+        step_count += 1
 
-        move_count += 1
-        # periodically take a snapshot of steps
-        if move_count % snapshot_interval == 0 and current_changes:
-            steps.append(current_changes)
-            current_changes = []
+        # take snapshot at intervals
+        if step_count % snapshot_interval == 0 and pending_snapshot:
+            snapshots.append(pending_snapshot.copy())
+            pending_snapshot.clear()
 
-        if (x, y) == end:
-            final_path = path + [(x, y)]
+        # reached the end
+        if current_cell == end:
+            found_path = True
+            final_path  = path + [(x, y)]
             break
 
-        # explore neighbour nodes and push them into heap with their f score
-        for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < len(original) and 0 <= ny < len(original[0]) and original[nx][ny] != 1:
-                g = len(path) + 1
-                h = heuristic((nx, ny), end)
-                f = g + h * HEURISTIC_WEIGHT
-                heapq.heappush(open_set, (f, (nx, ny), path + [(x, y)]))
+        # explore neighbors
+        for direction_x, direction_y in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+            neighbour_x = x + direction_x
+            neighbour_y = y + direction_y
 
-    # append any changes left since last snapshot
-    if current_changes:
-        steps.append(current_changes)
+            out_of_bounds = (
+                neighbour_x < 0 or neighbour_x >= num_rows or
+                neighbour_y < 0 or neighbour_y >= num_columns
+            )
+            if out_of_bounds:
+                continue
+            if original[neighbour_x][neighbour_y] == WALL:
+                continue
+            if (neighbour_x, neighbour_y) in visited_cells:
+                continue
 
-    path_changes = []
-    if final_path:
-        for (x, y) in final_path:
-            if original[x][y] not in endpoints:
-                path_changes.append((x, y, 'P'))
-        steps.append(path_changes)
+            g_cost = len(path) + 1
+            h_cost = heuristic((neighbour_x, neighbour_y), end)
+            f_cost = g_cost + h_cost * HEURISTIC_WEIGHT
 
-    return final_path, steps
+            heapq.heappush(
+                priority_queue,
+                (f_cost, neighbour_x, neighbour_y, path + [(x, y)])
+            )
+
+    # append remaining snapshots
+    if pending_snapshot:
+        snapshots.append(pending_snapshot.copy())
+
+    # record the final path
+    if found_path:
+        final_path_snapshot = [
+            (x, y, 'P')
+            for x, y in final_path
+            if original[x][y] not in END_POINTS
+        ]
+        if final_path_snapshot:
+            snapshots.append(final_path_snapshot)
+
+    return (final_path if found_path else []), snapshots
