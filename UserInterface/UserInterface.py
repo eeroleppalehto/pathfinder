@@ -33,22 +33,29 @@ class UserInterface:
         self.root = UIRoot()
         self.control_panel = Panel((self.control_panel_x, 0), (self.control_panel_width, self.screen_height))
         self.dropdown = Dropdown((20, 20), (200, 30), ["BFS", "DFS", "Dijkstra", "A*"], 0, self.app.on_algorithm_changed)
-        self.speed_slider = Slider((20, 85), (200, 15), (10, 20), 0.1, self.app.max_speed, self.app.speed, self.app.on_speed_changed)
-        self.play_button = Button((20, 160), (100, 30), "Play", self.app.play)
-        self.pause_button = Button((130, 160), (100, 30), "Pause", self.app.pause)
-        self.stop_button = Button((20, 200), (100, 30), "Stop", self.app.stop)
-        self.next_button = Button((130, 200), (100, 30), "Next", self.app.next_step)
-        self.prev_button = Button((20, 240), (100, 30), "Prev", self.app.prev_step)
+
+        self.play_button = Button((20, 180), (100, 30), "Play", self.app.play)
+        self.pause_button = Button((130, 180), (100, 30), "Pause", self.app.pause)
+        self.stop_button = Button((20, 220), (100, 30), "Stop", self.app.stop)
+        self.next_button = Button((130, 220), (100, 30), "Next", self.app.next_step)
+        self.prev_button = Button((20, 260), (100, 30), "Prev", self.app.prev_step)
         self.generate_empty_button = Button((20, 520), (100, 30), "Empty", self.app.generate_empty_maze)
         self.generate_maze_button = Button((130, 520), (100, 30), "Random", self.app.generate_random_maze)
-        self.timeline_slider = Slider((20, 305), (200, 15), (10, 20), 0, 0, 0, self.app.on_timeline_changed)
+        self.timeline_slider = Slider((20, 335), (200, 15), (10, 20), 0, 0, 0, self.app.on_timeline_changed)
+        self.speed_slider = Slider((20, 85), (200, 15), (10, 20), 0.1, self.app.max_speed, self.app.speed, self.app.on_speed_changed)
         self.speed_header = Header((20, 58), f"Speed: {self.speed_slider.value:.1f}x")
-        self.timeline_header = Header((20, 280), "Timeline")
-        self.steps_header = Header((20, 340), "Steps")
 
-        self.step_counter_header = Header((30, 370), f"Total: {self.app.step_counter}")
+        self.heuristic_weight_slider = Slider((20, 145), (200, 15), (10, 20), self.app.heuristic_weight_min, self.app.heuristic_weight_max, self.app.heuristic_weight, self.app.heuristic_weight_changed)
+        self.heuristic_weight_header = Header((20, 118), f"Heuristic Weight: {self.heuristic_weight_slider.value:.1f}")
+        self.heuristic_weight_slider.enabled = False
+        self.heuristic_weight_header.enabled = False
+
+        self.timeline_header = Header((20, 310), "Timeline")
+        self.steps_header = Header((20, 370), "Steps")
+
+        self.step_counter_header = Header((30, 400), f"Total: {self.app.step_counter}")
         self.step_counter_header.text_color = (0,0,255)
-        self.final_step_count_header = Header((30, 400), f"Path: {self.app.final_step_count}")
+        self.final_step_count_header = Header((30, 430), f"Path: {self.app.final_step_count}")
         self.final_step_count_header.text_color = (255, 0, 255)
         self.drawing_tools_header = Header((20, 560), "Drawing tools")
         self.drawing_tools_panel = Panel((20, 590), (210, 40))
@@ -60,8 +67,8 @@ class UserInterface:
 
         # The order you add the children is the draw order of them.
         self.buttons = [self.play_button, self.pause_button, self.stop_button, self.next_button, self.prev_button, self.generate_empty_button, self.generate_maze_button, self.dropdown]
-        self.sliders = [self.speed_slider, self.timeline_slider]
-        self.headers = [self.speed_header, self.timeline_header, self.drawing_tools_header]
+        self.sliders = [self.speed_slider, self.timeline_slider, self.heuristic_weight_slider]
+        self.headers = [self.speed_header, self.timeline_header, self.drawing_tools_header, self.heuristic_weight_header]
         self.panels = [self.drawing_tools_panel]
         self.draw_buttons = [self.draw_start_button, self.draw_end_button, self.draw_wall_button, self.draw_empty_button]
         
@@ -77,6 +84,7 @@ class UserInterface:
         self.speed_header.text = f"Speed: {self.speed_slider.value:.1f}x"
         self.step_counter_header.text = f"Total: {self.app.step_counter}"
         self.final_step_count_header.text = f"Path: {self.app.final_step_count}"
+        self.heuristic_weight_header.text = f"Heuristic Weight: {self.heuristic_weight_slider.value:.1f}"
         self.root.draw(surface)
 
     def set_timeline(self, min, max, value):

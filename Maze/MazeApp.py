@@ -47,6 +47,11 @@ class MazeApp:
         self.step_counter = 0
         self.final_step_count = 0
 
+        self.heuristic_weight = 2
+        self.heuristic_weight_min = 1
+        self.heuristic_weight_max = 4
+        MazeSolver.set_heuristic_weight(self.heuristic_weight)
+
         self.cursor = Cursor()
         self.maze_generator = MazeGenerator()
         self.maze_model = MazeModel(self.maze_generator, SIZE_OF_MAZE, SIZE_OF_MAZE)
@@ -54,13 +59,22 @@ class MazeApp:
         self.maze_drawing = MazeDrawing(self.maze_renderer, self.cursor)
         self.UserInterface = UserInterface(self,self.canvas_width, self.control_panel_width, screen_height)
 
+
         self.is_playing = False
         self.drawing_state = "disabled"
         self.accumulated_time = 0
 
     def solver_factory(self, algorithm_name):
         return MazeSolver(algorithm=algorithm_name)
+    
+    def heuristic_weight_changed(self, value):
+        if self.maze_model.steps:
+            self.stop()
 
+        self.heuristic_weight = value
+        MazeSolver.set_heuristic_weight(self.heuristic_weight)
+        return
+    
     def run(self):
         self.stop()
         self.accumulated_time = 0
@@ -138,7 +152,6 @@ class MazeApp:
                 self.UserInterface.dropdown.selected
             ]
             self.maze_model.run_algorithm(self.solver_factory, algorithm_name)
-
         if not self.is_playing:
             self.is_playing = True
             self.accumulated_time = 0
@@ -184,6 +197,13 @@ class MazeApp:
         self.speed = value
 
     def on_algorithm_changed(self, value: str):
+        if value == "A*":
+            self.UserInterface.heuristic_weight_header.enabled = True
+            self.UserInterface.heuristic_weight_slider.enabled = True
+        else:
+            self.UserInterface.heuristic_weight_header.enabled = False
+            self.UserInterface.heuristic_weight_slider.enabled = False
+
         if value:
             self.stop()
 

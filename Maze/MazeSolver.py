@@ -1,4 +1,4 @@
-from Algorithms.AStar import a_star_steps
+from Algorithms.AStar import a_star_steps, set_heuristic_weight
 from Algorithms.BreadthFirstSearch import bfs_steps
 from Algorithms.DepthFirstSearch import dfs_steps
 from Algorithms.Dijkstra import dijkstra_steps
@@ -21,7 +21,14 @@ class MazeSolver:
             "A*": a_star_steps
         }
 
+    def set_heuristic_weight(weight: float):
+        set_heuristic_weight(weight)
+
     def solve(self, maze, start, end):
         if self.algorithm not in self.algorithms:
             raise ValueError(f"Unknown algorithm: {self.algorithm}")
-        return self.algorithms[self.algorithm](maze, start, end, snapshot_interval=1)
+        
+        if(self.algorithm == "A*"):
+            return self.algorithms[self.algorithm](maze, start, end, 1)
+        else:
+            return self.algorithms[self.algorithm](maze, start, end, 1)

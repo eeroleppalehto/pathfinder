@@ -22,6 +22,7 @@ class UIComponent(InlineStyle):
         self._local_position = pos  
         self._size = size
         self.active = True
+        self._enabled = True
         self.hovered = False
         self.children: list[UIComponent] = []
         self.style_manager = ComponentStyleManager(component_name, style_group.normal, style_group.hover)
@@ -32,6 +33,13 @@ class UIComponent(InlineStyle):
     @property
     def name(self):
         return self._name
+    @property
+    def enabled(self):
+        return self._enabled
+    
+    @enabled.setter
+    def enabled(self, state: bool = True):
+        self._enabled = state
 
     def set_root(self, root: UIRoot | None):
         """
@@ -172,6 +180,9 @@ class UIComponent(InlineStyle):
         Draws all child components
         onto the given surface.
         """
+        if self.enabled == False:
+            return
+        
         for child in self.children:
             child.draw(surface)
 
@@ -179,6 +190,9 @@ class UIComponent(InlineStyle):
         """
         Passes an event down to all children.
         """
+        if self.enabled == False:
+            return
+        
         for child in self.children:
             child.handle_event(event)
 
@@ -187,6 +201,8 @@ class UIComponent(InlineStyle):
         Base event handling 
         (propagates events to children). 
         """
+        if self.enabled == False:
+            return
         self.propagate_event(event) 
         return False
     
@@ -224,6 +240,9 @@ class Panel(UIComponent):
         
   
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         background_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
@@ -236,6 +255,9 @@ class Panel(UIComponent):
         self.draw_children(surface)
 
     def handle_event(self, event):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         if event.type == MOUSEMOTION:
             was_hovered = self.hovered
@@ -297,6 +319,9 @@ class Header(UIComponent):
         self.needs_update = True
 
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         text_color = self.get_style_property(StyleProperty.TEXT_COLOR, self.hovered, True)
@@ -357,6 +382,9 @@ class Image(UIComponent):
         self.image_surface = image_surface
 
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         surface.blit(self.image_surface, rect)
         self.draw_children(surface)
@@ -388,6 +416,9 @@ class Button(UIComponent):
         self._value = new_value
 
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         pygame.draw.rect(surface, bg_color, rect)
@@ -415,8 +446,9 @@ class Button(UIComponent):
             child.draw(surface)
 
     def handle_event(self, event):
-        if not self.active:
-            return False
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
 
         if event.type == MOUSEMOTION:
@@ -458,6 +490,9 @@ class DropdownItem(UIComponent):
         self._cached_text_rect = None
 
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
@@ -478,8 +513,8 @@ class DropdownItem(UIComponent):
         surface.blit(self._cached_text_surf, self._cached_text_rect)
 
     def handle_event(self, event):
-        if not self.active:
-            return False
+        if self.enabled == False:
+            return
         
         rect = self.get_rect()
         if event.type == MOUSEMOTION:
@@ -534,6 +569,9 @@ class Dropdown(UIComponent):
         return callback
 
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         bg_color = self.get_style_property(StyleProperty.BACKGROUND_COLOR, self.hovered, True)
         border_size = self.get_style_property(StyleProperty.BORDER_SIZE, self.hovered)
@@ -560,8 +598,8 @@ class Dropdown(UIComponent):
    
 
     def handle_event(self, event):
-        if not self.active:
-            return False, None
+        if self.enabled == False:
+            return
 
         rect = self.get_rect()
 
@@ -628,6 +666,9 @@ class Slider(UIComponent):
         return pygame.Rect(rect.left, rect.top, progress_width, rect.height)
     
     def draw(self, surface):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         thumb_rect = self._get_thumb_rect(rect)
 
@@ -648,6 +689,9 @@ class Slider(UIComponent):
         pygame.draw.rect(surface, thumb_color, thumb_rect)
 
     def handle_event(self, event):
+        if self.enabled == False:
+            return
+        
         rect = self.get_rect()
         
         if event.type == MOUSEBUTTONDOWN:

@@ -1,11 +1,14 @@
 import heapq
 import copy
 
-# change to adjust how greedy A* will be
-HEURISTIC_WEIGHT = 2.0
 
 
-# Manhattan distance heuristic for grid
+class Settings:
+    heuristic_weight = 2.0
+
+def set_heuristic_weight(weight: float):
+    Settings.heuristic_weight = weight
+
 def heuristic(a, b):
      return abs(a[0] - b[0]) + abs(a[1] - b[1])
 
@@ -73,7 +76,7 @@ def a_star_steps(maze, start, end, snapshot_interval=1):
 
             g_cost = len(path) + 1
             h_cost = heuristic((neighbour_x, neighbour_y), end)
-            f_cost = g_cost + h_cost * HEURISTIC_WEIGHT
+            f_cost = g_cost + h_cost * Settings.heuristic_weight
 
             heapq.heappush(
                 priority_queue,
