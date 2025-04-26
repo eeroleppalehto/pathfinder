@@ -99,11 +99,13 @@ class MazeApp:
                     self.accumulated_time -= steps_to_apply * time_per_step
                     self.step_counter += steps_to_apply
 
-                    range_start = self.maze_model.current_step + 1
-                    range_end = self.maze_model.current_step + steps_to_apply
-                    self._apply_steps_in_range(range_start, range_end)
-                    
-                    self.maze_model.current_step += steps_to_apply
+                    for _ in range(steps_to_apply):
+                        self.maze_model.current_step += 1
+                        self.maze_model.display_step(self.maze_model.current_step)
+
+                        next_step = self.maze_model.steps[self.maze_model.current_step]
+                        for (x, y, value) in next_step:
+                            self.maze_renderer.update_maze_surface_cell(x, y, value)
                 else:
                     self.final_step_count = self.maze_model.get_final_path_length()
 
@@ -128,6 +130,7 @@ class MazeApp:
         sys.exit()
 
     def play(self):
+        self.maze_drawing.initialize_surface()
         self.maze_drawing.current_draw_action = self.maze_drawing.draw_actions["disabled"]
 
         if not self.maze_model.steps:
@@ -157,6 +160,7 @@ class MazeApp:
     def next_step(self):
         self.pause()
         if self.maze_model.current_step < len(self.maze_model.steps) - 1:
+            self.step_counter += 1
             self.maze_model.display_step(self.maze_model.current_step + 1)
             next_step = self.maze_model.steps[self.maze_model.current_step]
             for (x, y, value) in next_step:
@@ -164,8 +168,17 @@ class MazeApp:
 
     def prev_step(self):
         self.pause()
-        if self.maze_model.current_step > 0:
+        if self.maze_model.current_step >= 0:
+            self.step_counter -= 1
+            next_step = self.maze_model.steps[self.maze_model.current_step]
             self.maze_model.display_step(self.maze_model.current_step - 1)
+            for (x, y, value) in next_step:
+                if value == 'V':
+                    self.maze_renderer.update_maze_surface_cell(x, y, 0)
+                else:
+                    self.maze_renderer.update_maze_surface_cell(x, y, 'V')
+        else:
+            self.step_counter = 0
 
     def on_speed_changed(self, value: float):
         self.speed = value
@@ -180,20 +193,19 @@ class MazeApp:
         """
         if not self.maze_model.steps:
             self.play()
+            self.final_step_count = self.maze_model.get_final_path_length()
 
         new_step = max(0, min(int(round(slider_value)), len(self.maze_model.steps) - 1))
-        previous_step = self.last_scrubbed_step
+        previous_step = self.maze_model.last_step
 
         if new_step > previous_step:
-            self._apply_steps_forward(previous_step + 1, new_step)
+            for _ in range(previous_step, new_step):
+                self.next_step()
+
         elif new_step < previous_step:
-            self._rewind_to_step(new_step)
-
-        self.maze_model.current_step = new_step
-        self.last_scrubbed_step = new_step
-        self.step_counter = new_step + 1
-        self.final_step_count = self.maze_model.get_final_path_length()
-
+            for _ in range(new_step, previous_step):
+                self.prev_step()
+        
         self.pause()
 
     def _apply_steps_in_range(self, start: int, end: int):

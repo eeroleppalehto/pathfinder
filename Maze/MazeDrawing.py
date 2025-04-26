@@ -63,8 +63,6 @@ class MazeDrawing:
 
         if event.type == pygame.MOUSEBUTTONUP:
             self._prev_cell = None
-            self.reset_steps()
-            self.maze_renderer.update_maze_surface()
      
         if event.type == pygame.MOUSEBUTTONDOWN:
             new_val = self.current_draw_action(row, col)
@@ -97,6 +95,13 @@ class MazeDrawing:
         if self.current_draw_state != "disabled":
             self.cursor.set_cross_cursor()
 
+    def initialize_surface(self):
+        if self.needs_initialization:
+            self._prev_cell = None
+            self.reset_steps()
+            self.maze_renderer.update_maze_surface()
+            self.needs_initialization = False
+     
     def draw_line(self, start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
         # (same Bresenham list-based implementation as before)
         start_row, start_col = start
@@ -131,8 +136,6 @@ class MazeDrawing:
         if self.maze_model.maze[row][col] in ('S', 'E'):
             return None
         self.maze_model.maze[row][col] = 1
-        # self.maze_model.current_maze[row][col] = 1
-        self.reset_steps()
         return 1
 
     def remove_wall(self, row: int, col: int) -> int | None:
@@ -148,6 +151,7 @@ class MazeDrawing:
             return None
         # clear old start cell
         self.maze_model.maze[old_r][old_c] = 0
+        self.maze_renderer.incremental_update_overlay([(old_r, old_c, 0)])
 
         # set new start
         self.maze_model.maze[row][col] = 'S'
@@ -161,6 +165,7 @@ class MazeDrawing:
         if (row, col) == (old_r, old_c):
             return None
         self.maze_model.maze[old_r][old_c] = 0
+        self.maze_renderer.incremental_update_overlay([(old_r, old_c, 0)])
 
         self.maze_model.maze[row][col] = 'E'
         self.maze_model.end = (row, col)
@@ -168,9 +173,9 @@ class MazeDrawing:
         return 'E'
 
     def reset_steps(self):
-        self.maze_model.current_step = -1
-        self.maze_model.last_step = -1
         if self.maze_model.steps:
+            self.maze_model.current_step = -1
+            self.maze_model.last_step = -1
             self.maze_model.reset_maze_to_original()
             self.maze_renderer.update_maze_surface()
             self.maze_model.steps.clear()
