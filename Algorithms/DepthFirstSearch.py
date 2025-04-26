@@ -2,9 +2,7 @@ import copy
 
 def dfs_steps(maze, start, end, snapshot_interval=1):
     original            = [row.copy() for row in maze]
-
-    # stack for DFS (x, y, backtrack)
-    search_stack        = [(start[0], start[1], False)]
+    search_stack        = [(start[0], start[1], False)]  # stack for DFS (x, y, backtrack)
     visited_cells       = set()
     parent_cells        = {}
     snapshots           = [] # history of changes for visualization

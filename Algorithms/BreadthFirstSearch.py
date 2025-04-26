@@ -49,11 +49,11 @@ def bfs_steps(maze, start, end, snapshot_interval=1):
             neighbor_x = x + direction_x
             neighbor_y = y + direction_y
 
-            is_out_of_bounds = (
+            out_of_bounds = (
                 neighbor_x < 0 or neighbor_x >= num_rows or
                 neighbor_y < 0 or neighbor_y >= num_columns
             )
-            if is_out_of_bounds:
+            if out_of_bounds:
                 continue
             if original[neighbor_x][neighbor_y] == WALL:
                 continue
