@@ -99,7 +99,7 @@ class MazeDrawing:
         if self.needs_initialization:
             self._prev_cell = None
             self.reset_steps()
-            self.maze_renderer.initialize_background()
+            self.maze_renderer.update_maze_surface()
             self.needs_initialization = False
      
     def draw_line(self, start: tuple[int, int], end: tuple[int, int]) -> list[tuple[int, int]]:
@@ -151,6 +151,7 @@ class MazeDrawing:
             return None
         # clear old start cell
         self.maze_model.maze[old_r][old_c] = 0
+        self.maze_renderer.incremental_update_overlay([(old_r, old_c, 0)])
 
         # set new start
         self.maze_model.maze[row][col] = 'S'
@@ -164,6 +165,7 @@ class MazeDrawing:
         if (row, col) == (old_r, old_c):
             return None
         self.maze_model.maze[old_r][old_c] = 0
+        self.maze_renderer.incremental_update_overlay([(old_r, old_c, 0)])
 
         self.maze_model.maze[row][col] = 'E'
         self.maze_model.end = (row, col)
